@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 app.use(cors());
 app.use(express.json());
 
-// -------- Helper: obtener student desde user --------
+// obtener el usuario
 async function getStudentFromUser(userId) {
   return prisma.student.findFirst({ where: { userId } });
 }

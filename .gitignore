@@ -6,7 +6,8 @@ build/
 Backend/.env
 frontend/.env
 
-*.db
-*.db-journal
+Backend/prisma/generated/
+/generated/prisma
 
 .DS_Store
+*.log
