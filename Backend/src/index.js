@@ -17,9 +17,6 @@ async function getStudentFromUser(userId) {
   return prisma.student.findFirst({ where: { userId } });
 }
 
-// ========================
-// AUTH
-// ========================
 app.post("/api/auth/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
@@ -50,9 +47,7 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// ========================
-// ADMIN / COORDINATION: crear estudiante
-// ========================
+// crear estudiante
 app.post(
   "/api/admin/students",
   requireAuth(["COORDINATION"]),
@@ -103,9 +98,7 @@ app.post(
   }
 );
 
-// ========================
-// CU-01: listar ofertas (STUDENT)
-// ========================
+// listar las ofertas
 app.get("/api/offers", requireAuth(["STUDENT"]), async (req, res) => {
   try {
     const offers = await prisma.offer.findMany({
@@ -119,9 +112,7 @@ app.get("/api/offers", requireAuth(["STUDENT"]), async (req, res) => {
   }
 });
 
-// ========================
-// CU-01: postular a oferta
-// ========================
+// postular a ofertas
 app.post("/api/applications", requireAuth(["STUDENT"]), async (req, res) => {
   const { offerId } = req.body;
   if (!offerId)
@@ -153,9 +144,7 @@ app.post("/api/applications", requireAuth(["STUDENT"]), async (req, res) => {
   }
 });
 
-// ========================
-// CU-01: registrar práctica externa
-// ========================
+// registrar practica externa
 app.post("/api/practices", requireAuth(["STUDENT"]), async (req, res) => {
   const { company, tutorName, tutorEmail, startDate, endDate, details } = req.body;
 
@@ -190,9 +179,7 @@ app.post("/api/practices", requireAuth(["STUDENT"]), async (req, res) => {
   }
 });
 
-// ========================
-// CU-01: mis solicitudes
-// ========================
+// solicitudes registradas
 app.get("/api/my/requests", requireAuth(["STUDENT"]), async (req, res) => {
   try {
     const student = await getStudentFromUser(req.user.id);
@@ -218,9 +205,7 @@ app.get("/api/my/requests", requireAuth(["STUDENT"]), async (req, res) => {
   }
 });
 
-// ========================
-// GESTIÓN: aprobar postulaciones y crear Practice
-// ========================
+// la aprobacion
 app.post(
   "/api/gestion/applications/:id/approve",
   requireAuth(["COORDINATION"]),
@@ -299,9 +284,7 @@ app.post(
   }
 );
 
-// ========================
-// GESTIÓN: listar prácticas abiertas
-// ========================
+// practicas abiertas
 app.get(
   "/api/gestion/practices",
   requireAuth(["COORDINATION"]),
@@ -323,9 +306,7 @@ app.get(
   }
 );
 
-// ========================
-// GESTIÓN: asignar evaluador / supervisor
-// ========================
+// asignar evaluador 
 app.post(
   "/api/gestion/practices/:id/asignar-evaluador",
   requireAuth(["COORDINATION"]),
@@ -378,9 +359,7 @@ app.post(
   }
 );
 
-// ========================
-// DOCUMENTOS: informe / bitácora
-// ========================
+// informe/bitacora
 app.post(
   "/api/practices/:id/documentos",
   requireAuth(["STUDENT", "SUPERVISOR"]),
@@ -409,9 +388,7 @@ app.post(
   }
 );
 
-// ========================
-// EVALUACIONES
-// ========================
+// evaluaciones
 app.post(
   "/api/evaluations/supervisor",
   requireAuth(["SUPERVISOR"]),
@@ -470,9 +447,7 @@ app.post(
   }
 );
 
-// ========================
-// CERRAR PRÁCTICA
-// ========================
+// cerrar practica
 app.post(
   "/api/gestion/practices/:id/cerrar",
   requireAuth(["COORDINATION"]),
@@ -527,9 +502,6 @@ app.post(
   }
 );
 
-// ========================
-// INICIO SERVIDOR
-// ========================
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`✅ API Backend unificado escuchando en http://localhost:${PORT}`);
