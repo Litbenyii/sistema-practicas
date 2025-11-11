@@ -1,24 +1,23 @@
-const API_URL = 'http://localhost:4000';
+// src/api.js
+const API_URL = "http://localhost:4000/api";
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-      ...options.headers,
     },
-    method: options.method || 'GET',
+    method: options.method || "GET",
     body: options.body ? JSON.stringify(options.body) : null,
   });
 
   if (!res.ok) {
-    let msg = 'Error en la solicitud';
+    let msg = "Error en la solicitud";
     try {
       const data = await res.json();
+      if (data?.error) msg = data.error;
       if (data?.message) msg = data.message;
-    } catch (e) {
-      // ignore parse error
-    }
+    } catch (_) {}
     throw new Error(msg);
   }
 
@@ -26,43 +25,29 @@ async function request(path, options = {}) {
   return res.json();
 }
 
-// ==== Auth ====
-
-export async function login(email, password) {
-  return request('/auth/login', {
-    method: 'POST',
+// login
+export function login(email, password) {
+  return request("/auth/login", {
+    method: "POST",
     body: { email, password },
   });
 }
 
-// ==== Ofertas y postulaciones ====
-
-export async function getOffers(token) {
-  return request('/offers', { token });
+// ofertas de practica
+export function getOffers(token) {
+  return request("/offers", { token });
 }
 
-export async function applyToOffer(token, offerId) {
-  return request('/applications', {
-    method: 'POST',
-    token,
-    body: { offerId },
-  });
-}
-
-export async function getMyApplications(token) {
-  return request('/applications/me', { token });
-}
-
-// ==== Solicitud de práctica externa ====
-
-export async function createPracticeRequest(token, payload) {
-  return request('/practice-requests', {
-    method: 'POST',
+// agregar practoca externa
+export function createPracticeRequest(token, payload) {
+  return request("/practices", {
+    method: "POST",
     token,
     body: payload,
   });
 }
 
-export async function getMyPracticeRequests(token) {
-  return request('/practice-requests/me', { token });
+// ver las solicitudes/postulaciones inscritas
+export function getMyRequests(token) {
+  return request("/my/requests", { token });
 }

@@ -1,81 +1,76 @@
-import { useState } from 'react';
-import { login } from './api';
+import React, { useState } from "react";
+import { login } from "./api";
 
-export default function Login({ onLogged }) {
-  const [email, setEmail] = useState('alumno@uni.cl');
-  const [password, setPassword] = useState('123456');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+export default function Login({ onLoginSuccess }) {
+  const [email, setEmail] = useState("alumno@uni.cl");
+  const [password, setPassword] = useState("123456");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setError("");
+
     try {
-      const data = await login(email.trim(), password);
-      onLogged(data);
+      const data = await login(email, password);
+      onLoginSuccess(data);
     } catch (err) {
-      setError(err.message || 'Credenciales inválidas');
-    } finally {
-      setLoading(false);
+      setError(err.message || "Error al iniciar sesión");
     }
   };
 
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-      <h1 className="text-2xl font-semibold text-slate-900 mb-1">
-        Sistema de Prácticas
-      </h1>
-      <p className="text-xs text-slate-500 mb-6">
-        Inicia sesión con tu correo institucional.
-      </p>
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <div className="bg-white rounded-3xl shadow-xl p-10 w-full max-w-xl space-y-6">
+        <h1 className="text-3xl font-semibold text-slate-900">
+          Sistema de Prácticas
+        </h1>
+        <p className="text-slate-500">
+          Inicia sesión con tu correo institucional.
+        </p>
 
-      {error && (
-        <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="bg-red-50 text-red-700 px-4 py-2 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            Correo
-          </label>
-          <input
-            type="email"
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/70"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="alumno@uni.cl"
-            required
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Correo
+            </label>
+            <input
+              className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900/70"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+            />
+          </div>
 
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            Contraseña
-          </label>
-          <input
-            type="password"
-            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/70"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Contraseña
+            </label>
+            <input
+              className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900/70"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-slate-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-slate-800 disabled:opacity-60"
-        >
-          {loading ? 'Ingresando...' : 'Ingresar'}
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="w-full bg-slate-900 text-white py-3 rounded-2xl font-medium hover:bg-slate-800 transition"
+          >
+            Ingresar
+          </button>
+        </form>
 
-      <p className="mt-4 text-[10px] text-slate-400">
-        Para demo: alumno@uni.cl / 123456 o admin@uni.cl / Admin123
-      </p>
+        <p className="text-xs text-slate-400">
+          Para demo: alumno@uni.cl / 123456 o admin@uni.cl / Admin123
+        </p>
+      </div>
     </div>
   );
 }

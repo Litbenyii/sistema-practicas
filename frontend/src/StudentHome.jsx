@@ -1,299 +1,308 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getOffers,
-  applyToOffer,
+  getMyRequests,
   createPracticeRequest,
-  getMyApplications,
-  getMyPracticeRequests,
-} from './api';
+} from "./api";
 
-export default function StudentHome({ session }) {
-  const { token, user } = session;
+export default function StudentHome({ token, name, onLogout }) {
   const [offers, setOffers] = useState([]);
-  const [apps, setApps] = useState([]);
-  const [requests, setRequests] = useState([]);
 
+  const [applications, setApplications] = useState([]);
+  const [practiceRequests, setPracticeRequests] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [msg, setMsg] = useState("");
+
+  // Formulario para inscribir practica
   const [form, setForm] = useState({
-    company: '',
-    tutorName: '',
-    tutorEmail: '',
-    startDate: '',
-    endDate: '',
-    details: '',
+    company: "",
+    tutorName: "",
+    tutorEmail: "",
+    startDate: "",
+    endDate: "",
+    details: "",
   });
-
-  const [msg, setMsg] = useState('');
-  const [err, setErr] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const load = async () => {
+      try {
+        setError("");
+        setMsg("");
 
-  const loadData = async () => {
-    setErr('');
-    try {
-      const [o, a, r] = await Promise.all([
-        getOffers(token),
-        getMyApplications(token),
-        getMyPracticeRequests(token),
-      ]);
-      setOffers(o || []);
-      setApps(a || []);
-      setRequests(r || []);
-    } catch (e) {
-      setErr('No se pudieron cargar los datos. Revisa el backend.');
-    }
+        const [offersData, myReq] = await Promise.all([
+          getOffers(token),
+          getMyRequests(token),
+        ]);
+
+        setOffers(offersData || []);
+        setApplications(myReq?.applications || []);
+        setPracticeRequests(myReq?.practices || []);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "No se pudieron cargar los datos");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [token]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
   };
 
-  const handleApply = async (offerId) => {
-    setMsg('');
-    setErr('');
-    try {
-      await applyToOffer(token, offerId);
-      setMsg('Postulación enviada.');
-      await loadData();
-    } catch (e) {
-      setErr(e.message);
-    }
-  };
-
-  const handleSubmitRequest = async (e) => {
+  const handlePracticeSubmit = async (e) => {
     e.preventDefault();
-    setMsg('');
-    setErr('');
+    setError("");
+    setMsg("");
+
+    if (
+      !form.company ||
+      !form.tutorName ||
+      !form.tutorEmail ||
+      !form.startDate ||
+      !form.endDate
+    ) {
+      setError("Completa todos los campos obligatorios de la practica externa.");
+      return;
+    }
 
     try {
-      await createPracticeRequest(token, form);
-      setMsg('Solicitud de práctica externa enviada.');
-      setForm({
-        company: '',
-        tutorName: '',
-        tutorEmail: '',
-        startDate: '',
-        endDate: '',
-        details: '',
-      });
-      await loadData();
-    } catch (e) {
-      setErr(e.message);
-    }
-  };
+      setSending(true);
 
-  const onFormChange = (field) => (e) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+      await createPracticeRequest(token, {
+        company: form.company,
+        tutorName: form.tutorName,
+        tutorEmail: form.tutorEmail,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        details: form.details,
+      });
+
+      setMsg("Practica externa enviada para evaluacion.");
+
+      setForm({
+        company: "",
+        tutorName: "",
+        tutorEmail: "",
+        startDate: "",
+        endDate: "",
+        details: "",
+      });
+
+      // refrescar las solicitudes
+      const myReq = await getMyRequests(token);
+      setApplications(myReq?.applications || []);
+      setPracticeRequests(myReq?.practices || []);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "No se pudo registrar la practica externa.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
-    <div className="space-y-8">
-      {/* Mensajes */}
-      {msg && (
-        <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded">
-          {msg}
-        </div>
-      )}
-      {err && (
-        <div className="text-xs text-red-700 bg-red-50 border border-red-100 px-3 py-2 rounded">
-          {err}
-        </div>
-      )}
-
-      {/* Ofertas disponibles */}
-      <section className="bg-white rounded-2xl p-6 shadow-sm">
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Postular a oferta disponible
-          </h2>
-          <span className="text-[10px] text-slate-400">
-            CU-01 Registrar solicitud de práctica (oferta interna)
-          </span>
-        </div>
-
-        {offers.length === 0 && (
-          <p className="text-xs text-slate-500">
-            No hay ofertas publicadas por coordinación.
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="px-10 py-6 flex justify-between items-center bg-white shadow-sm">
+        <div>
+          <h1 className="text-2xl font-semibold">
+            Portal de prácticas — Estudiante
+          </h1>
+          <p className="text-slate-500 text-sm">
+            Conectado como {name || "Alumno Prueba"}
           </p>
+        </div>
+        <button
+          onClick={onLogout}
+          className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm hover:bg-slate-800"
+        >
+          Cerrar sesión
+        </button>
+      </header>
+
+      <main className="p-10 space-y-8">
+        {loading && <p className="text-slate-500 text-sm">Cargando datos...</p>}
+
+        {error && (
+          <div className="bg-red-50 text-red-700 px-4 py-2 rounded-xl text-sm">
+            {error}
+          </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-4">
-          {offers.map((offer) => (
-            <div
-              key={offer.id}
-              className="border border-slate-100 rounded-xl p-4 flex flex-col gap-1"
-            >
-              <h3 className="font-semibold text-sm text-slate-900">
-                {offer.title}
-              </h3>
-              <p className="text-xs text-slate-600">
-                {offer.company} — {offer.location}
-              </p>
-              <p className="text-[10px] text-slate-500">
-                {offer.details}
-              </p>
-              <button
-                onClick={() => handleApply(offer.id)}
-                className="mt-2 self-start text-[11px] px-3 py-1 rounded bg-slate-900 text-white hover:bg-slate-800"
+        {msg && (
+          <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm">
+            {msg}
+          </div>
+        )}
+
+        {/* Postular a practica */}
+        <section className="bg-white rounded-2xl shadow-sm p-6">
+          <h2 className="font-semibold mb-4">Postular a oferta disponible</h2>
+          {offers.length === 0 ? (
+            <p className="text-slate-500 text-sm">
+              No hay ofertas activas por ahora.
+            </p>
+          ) : (
+            offers.map((o) => (
+              <div
+                key={o.id}
+                className="border border-slate-100 rounded-xl p-4 mb-3 flex justify-between items-center"
               >
-                Postular
+                <div>
+                  <h3 className="font-medium">{o.title}</h3>
+                  <p className="text-xs text-slate-500">
+                    {o.company} — {o.location}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {o.details}
+                  </p>
+                </div>
+                <button
+                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm hover:bg-slate-800"
+                  onClick={() => {
+                    alert(
+                      "Aquí puedes conectar la postulación a la oferta usando el endpoint /api/applications."
+                    );
+                  }}
+                >
+                  Postular
+                </button>
+              </div>
+            ))
+          )}
+        </section>
+
+        {/* Regitrar las practocas */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+          <h2 className="font-semibold">Registrar práctica externa</h2>
+          <form onSubmit={handlePracticeSubmit} className="grid gap-3 md:grid-cols-2">
+            <div className="md:col-span-1">
+              <input
+                name="company"
+                value={form.company}
+                onChange={handleChange}
+                placeholder="Empresa"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+              />
+            </div>
+            <div className="md:col-span-1">
+              <input
+                name="tutorName"
+                value={form.tutorName}
+                onChange={handleChange}
+                placeholder="Nombre tutor"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+              />
+            </div>
+            <div className="md:col-span-1">
+              <input
+                name="tutorEmail"
+                type="email"
+                value={form.tutorEmail}
+                onChange={handleChange}
+                placeholder="Correo tutor"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+              />
+            </div>
+            <div className="md:col-span-1 flex gap-2">
+              <input
+                name="startDate"
+                type="date"
+                value={form.startDate}
+                onChange={handleChange}
+                className="w-1/2 px-3 py-2 rounded-xl border border-slate-200 text-sm"
+              />
+              <input
+                name="endDate"
+                type="date"
+                value={form.endDate}
+                onChange={handleChange}
+                className="w-1/2 px-3 py-2 rounded-xl border border-slate-200 text-sm"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <textarea
+                name="details"
+                value={form.details}
+                onChange={handleChange}
+                placeholder="Detalles / objetivos de la práctica"
+                rows={3}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+              />
+            </div>
+            <div className="md:col-span-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={sending}
+                className="px-6 py-2 bg-slate-900 text-white rounded-xl text-sm hover:bg-slate-800 disabled:opacity-60"
+              >
+                {sending ? "Enviando..." : "Enviar solicitud"}
               </button>
             </div>
-          ))}
-        </div>
-      </section>
+          </form>
+        </section>
 
-      {/* Solicitud de práctica externa */}
-      <section className="bg-white rounded-2xl p-6 shadow-sm">
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Registrar práctica externa
-          </h2>
-          <span className="text-[10px] text-slate-400">
-            CU-01 Variante: práctica gestionada por el estudiante
-          </span>
-        </div>
-
-        <form
-          onSubmit={handleSubmitRequest}
-          className="grid gap-3 text-xs"
-        >
-          <div className="grid md:grid-cols-2 gap-3">
-            <div>
-              <label className="block mb-1 text-slate-700">
-                Empresa
-              </label>
-              <input
-                className="w-full border border-slate-200 rounded-lg px-3 py-2"
-                value={form.company}
-                onChange={onFormChange('company')}
-                required
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-slate-700">
-                Nombre tutor
-              </label>
-              <input
-                className="w-full border border-slate-200 rounded-lg px-3 py-2"
-                value={form.tutorName}
-                onChange={onFormChange('tutorName')}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <div>
-              <label className="block mb-1 text-slate-700">
-                Correo tutor
-              </label>
-              <input
-                type="email"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2"
-                value={form.tutorEmail}
-                onChange={onFormChange('tutorEmail')}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block mb-1 text-slate-700">
-                  Inicio
-                </label>
-                <input
-                  type="date"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2"
-                  value={form.startDate}
-                  onChange={onFormChange('startDate')}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block mb-1 text-slate-700">
-                  Término
-                </label>
-                <input
-                  type="date"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2"
-                  value={form.endDate}
-                  onChange={onFormChange('endDate')}
-                  required
-                />
-              </div>
-            </div>
+        {/* las solicitudes */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 grid gap-6 md:grid-cols-2">
+          <div>
+            <h3 className="font-semibold mb-2 text-sm">
+              Postulaciones a ofertas
+            </h3>
+            {applications.length === 0 ? (
+              <p className="text-slate-500 text-xs">Sin registros.</p>
+            ) : (
+              applications.map((a) => (
+                <div
+                  key={a.id}
+                  className="border border-slate-100 rounded-xl px-3 py-2 mb-2"
+                >
+                  <p className="text-xs font-medium">
+                    {a.Offer?.title || "Oferta"} — {a.Offer?.company}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Estado: {a.status}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
 
           <div>
-            <label className="block mb-1 text-slate-700">
-              Detalles / objetivos
-            </label>
-            <textarea
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 min-h-[70px]"
-              value={form.details}
-              onChange={onFormChange('details')}
-              placeholder="Descripción breve de las tareas, área, tecnologías, etc."
-            />
+            <h3 className="font-semibold mb-2 text-sm">
+              Prácticas externas
+            </h3>
+            {practiceRequests.length === 0 ? (
+              <p className="text-slate-500 text-xs">Sin registros.</p>
+            ) : (
+              practiceRequests.map((p) => (
+                <div
+                  key={p.id}
+                  className="border border-slate-100 rounded-xl px-3 py-2 mb-2"
+                >
+                  <p className="text-xs font-medium">{p.company}</p>
+                  <p className="text-[10px] text-slate-500">
+                    Tutor: {p.tutorName} ({p.tutorEmail})
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Desde {p.startDate?.slice(0, 10)} hasta{" "}
+                    {p.endDate?.slice(0, 10)}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Estado: {p.status}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              className="w-full md:w-auto bg-slate-900 text-white text-xs font-medium px-5 py-2 rounded-lg hover:bg-slate-800"
-            >
-              Enviar solicitud
-            </button>
-          </div>
-        </form>
-      </section>
-
-      {/* Listados */}
-      <section className="grid md:grid-cols-2 gap-4 text-xs">
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h3 className="font-semibold text-slate-900 mb-2">
-            Mis postulaciones a ofertas
-          </h3>
-          {apps.length === 0 && (
-            <p className="text-slate-500 text-[11px]">
-              Sin registros.
-            </p>
-          )}
-          <ul className="space-y-1">
-            {apps.map((a) => (
-              <li
-                key={a.id}
-                className="border border-slate-100 rounded-lg px-3 py-2 flex justify-between"
-              >
-                <span>{a.offer?.title || 'Oferta'}</span>
-                <span className="text-[10px] uppercase text-slate-500">
-                  {a.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h3 className="font-semibold text-slate-900 mb-2">
-            Mis prácticas externas registradas
-          </h3>
-          {requests.length === 0 && (
-            <p className="text-slate-500 text-[11px]">
-              Sin registros.
-            </p>
-          )}
-          <ul className="space-y-1">
-            {requests.map((r) => (
-              <li
-                key={r.id}
-                className="border border-slate-100 rounded-lg px-3 py-2 flex justify-between"
-              >
-                <span>{r.company}</span>
-                <span className="text-[10px] uppercase text-slate-500">
-                  {r.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+        </section>
+      </main>
     </div>
   );
 }

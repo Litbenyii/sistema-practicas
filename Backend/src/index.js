@@ -127,7 +127,7 @@ app.post("/api/applications", requireAuth(["STUDENT"]), async (req, res) => {
 
     const offer = await prisma.offer.findUnique({ where: { id: offerId } });
     if (!offer || !offer.active)
-      return res.status(400).json({ error: "Oferta no válida" });
+      return res.status(400).json({ error: "Oferta no valida" });
 
     const application = await prisma.application.create({
       data: {
@@ -140,7 +140,7 @@ app.post("/api/applications", requireAuth(["STUDENT"]), async (req, res) => {
     res.status(201).json(application);
   } catch (err) {
     console.error("Error al postular:", err);
-    res.status(500).json({ error: "No se pudo registrar la postulación" });
+    res.status(500).json({ error: "No se pudo registrar la postulacipn" });
   }
 });
 
@@ -174,8 +174,8 @@ app.post("/api/practices", requireAuth(["STUDENT"]), async (req, res) => {
 
     res.status(201).json(request);
   } catch (err) {
-    console.error("Error al registrar práctica externa:", err);
-    res.status(500).json({ error: "No se pudo registrar la práctica externa" });
+    console.error("Error al registrar prqctica externa:", err);
+    res.status(500).json({ error: "No se pudo registrar la practica externa" });
   }
 });
 
@@ -220,7 +220,7 @@ app.post(
         where: { id: appData.studentId },
       });
       if (!student)
-        return res.status(400).json({ error: "Estudiante no válido" });
+        return res.status(400).json({ error: "Estudiante no vslido" });
 
       await prisma.application.update({
         where: { id },
@@ -235,12 +235,12 @@ app.post(
       });
 
       res.json({
-        message: "Postulación aprobada y práctica creada",
+        message: "Postulacion aprobada y practica creada",
         practice,
       });
     } catch (err) {
-      console.error("Error al aprobar postulación:", err);
-      res.status(500).json({ error: "Error al aprobar postulación" });
+      console.error("Error al aprobar postulacion:", err);
+      res.status(500).json({ error: "Error al aprobar postulacion" });
     }
   }
 );
@@ -259,7 +259,7 @@ app.post(
         where: { id: reqData.studentId },
       });
       if (!student)
-        return res.status(400).json({ error: "Estudiante no válido" });
+        return res.status(400).json({ error: "Estudiante no valido" });
 
       await prisma.practiceRequest.update({
         where: { id },
@@ -278,7 +278,7 @@ app.post(
         practice,
       });
     } catch (err) {
-      console.error("Error al aprobar práctica externa:", err);
+      console.error("Error al aprobar practica externa:", err);
       res.status(500).json({ error: "Error al aprobar práctica externa" });
     }
   }
@@ -300,8 +300,8 @@ app.get(
       });
       res.json(practices);
     } catch (err) {
-      console.error("Error al listar prácticas:", err);
-      res.status(500).json({ error: "No se pudieron cargar las prácticas" });
+      console.error("Error al listar practicas:", err);
+      res.status(500).json({ error: "No se pudieron cargar las practicas" });
     }
   }
 );
@@ -317,7 +317,7 @@ app.post(
     try {
       const evaluator = await prisma.user.findUnique({ where: { id: evaluatorId } });
       if (!evaluator || evaluator.role !== Role.EVALUATOR) {
-        return res.status(400).json({ error: "Evaluador no válido" });
+        return res.status(400).json({ error: "Evaluador no valido" });
       }
 
       const practice = await prisma.practice.update({
@@ -343,7 +343,7 @@ app.post(
     try {
       const supervisor = await prisma.user.findUnique({ where: { id: supervisorId } });
       if (!supervisor || supervisor.role !== Role.SUPERVISOR) {
-        return res.status(400).json({ error: "Supervisor no válido" });
+        return res.status(400).json({ error: "Supervisor no valido" });
       }
 
       const practice = await prisma.practice.update({
@@ -368,7 +368,7 @@ app.post(
     const { type, url } = req.body;
 
     if (!Object.values(DocumentType).includes(type) || !url) {
-      return res.status(400).json({ error: "Datos de documento inválidos" });
+      return res.status(400).json({ error: "Datos de documento invalidos" });
     }
 
     try {
@@ -398,7 +398,7 @@ app.post(
     try {
       const practice = await prisma.practice.findUnique({ where: { id: practiceId } });
       if (!practice)
-        return res.status(404).json({ error: "Práctica no encontrada" });
+        return res.status(404).json({ error: "Practica no encontrada" });
 
       const ev = await prisma.evaluation.create({
         data: {
@@ -410,10 +410,10 @@ app.post(
         },
       });
 
-      res.status(201).json({ message: "Evaluación de supervisor registrada", ev });
+      res.status(201).json({ message: "Evaluacion de supervisor registrada", ev });
     } catch (err) {
-      console.error("Error evaluación supervisor:", err);
-      res.status(500).json({ error: "No se pudo registrar la evaluación" });
+      console.error("Error evaluacion supervisor:", err);
+      res.status(500).json({ error: "No se pudo registrar la evaluacion" });
     }
   }
 );
@@ -427,7 +427,7 @@ app.post(
     try {
       const practice = await prisma.practice.findUnique({ where: { id: practiceId } });
       if (!practice)
-        return res.status(404).json({ error: "Práctica no encontrada" });
+        return res.status(404).json({ error: "Practica no encontrada" });
 
       const ev = await prisma.evaluation.create({
         data: {
@@ -439,10 +439,10 @@ app.post(
         },
       });
 
-      res.status(201).json({ message: "Evaluación de profesor registrada", ev });
+      res.status(201).json({ message: "Evaluacian de profesor registrada", ev });
     } catch (err) {
-      console.error("Error evaluación profesor:", err);
-      res.status(500).json({ error: "No se pudo registrar la evaluación" });
+      console.error("Error evaluacion profesor:", err);
+      res.status(500).json({ error: "No se pudo registrar la evaluacian" });
     }
   }
 );
@@ -464,7 +464,7 @@ app.post(
       });
 
       if (!practice)
-        return res.status(404).json({ error: "Práctica no encontrada" });
+        return res.status(404).json({ error: "Practica no encontrada" });
 
       const tieneInforme = practice.Documents.some(
         (d) => d.type === DocumentType.INFORME
@@ -482,7 +482,7 @@ app.post(
       if (!tieneInforme || !tieneBitacora || !evalSupervisor || !evalProfesor) {
         return res.status(400).json({
           error:
-            "No se puede cerrar: falta informe, bitácora o evaluaciones requeridas",
+            "No se puede cerrar: falta informe, bitacora o evaluaciones requeridas",
         });
       }
 
@@ -492,12 +492,12 @@ app.post(
       });
 
       res.json({
-        message: "Práctica cerrada correctamente",
+        message: "Practica cerrada correctamente",
         practice: updated,
       });
     } catch (err) {
-      console.error("Error al cerrar práctica:", err);
-      res.status(500).json({ error: "No se pudo cerrar la práctica" });
+      console.error("Error al cerrar practica:", err);
+      res.status(500).json({ error: "No se pudo cerrar la practica" });
     }
   }
 );

@@ -52,7 +52,7 @@ async function main() {
       title: "Práctica Desarrollador Web",
       company: "Empresa Demo",
       location: "Concepción",
-      details: "320 horas, Stack JS, modalidad híbrida",
+      details: "320 horas, Stack JS, modalidad hibrida",
       active: true,
     },
   });
