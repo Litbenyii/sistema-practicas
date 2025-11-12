@@ -14,7 +14,7 @@ export default function Login({ onLoginSuccess }) {
       const data = await login(email, password);
       onLoginSuccess(data);
     } catch (err) {
-      setError(err.message || "Error al iniciar sesión");
+      setError(err.message || "Error al iniciar sesion");
     }
   };
 

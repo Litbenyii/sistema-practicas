@@ -136,3 +136,26 @@ model Evaluation {
   Practice    Practice @relation(fields: [practiceId], references: [id])
   Evaluator   User     @relation(fields: [evaluatorId], references: [id])
 }
+
+enum PracticaVeranoEstado {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+  EN_PROCESO
+}
+
+model PracticaVerano {
+  id               Int                  @id @default(autoincrement())
+  rut              String
+  nombreEstudiante String
+  carrera          String
+  empresa          String
+  areaPractica     String
+  email            String?
+  telefono         String?
+  estado           PracticaVeranoEstado @default(PENDIENTE)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+

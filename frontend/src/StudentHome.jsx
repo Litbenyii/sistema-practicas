@@ -197,7 +197,7 @@ export default function StudentHome({ token, name, onLogout }) {
                 name="tutorName"
                 value={form.tutorName}
                 onChange={handleChange}
-                placeholder="Nombre tutor"
+                placeholder="Nombre Supervisor"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
             </div>
@@ -207,7 +207,7 @@ export default function StudentHome({ token, name, onLogout }) {
                 type="email"
                 value={form.tutorEmail}
                 onChange={handleChange}
-                placeholder="Correo tutor"
+                placeholder="Correo Supervisor"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
             </div>
@@ -232,7 +232,7 @@ export default function StudentHome({ token, name, onLogout }) {
                 name="details"
                 value={form.details}
                 onChange={handleChange}
-                placeholder="Detalles / objetivos de la práctica"
+                placeholder="Objetivos de la practica"
                 rows={3}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />

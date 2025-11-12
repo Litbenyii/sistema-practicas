@@ -502,6 +502,121 @@ app.post(
   }
 );
 
+// practica de verano
+app.get(
+  "/api/practica-verano",
+  requireAuth(["COORDINATION"]),
+  async (req, res) => {
+    try {
+      const rows = await prisma.practicaVerano.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+      res.json(rows);
+    } catch (err) {
+      console.error("Error al listar práctica verano:", err);
+      res.status(500).json({ error: "No se pudo listar práctica verano" });
+    }
+  }
+);
+
+// obtener practica con el rut
+app.get(
+  "/api/practica-verano/:rut",
+  requireAuth(["COORDINATION"]),
+  async (req, res) => {
+    try {
+      const { rut } = req.params;
+      const row = await prisma.practicaVerano.findFirst({ where: { rut } });
+      if (!row)
+        return res.status(404).json({ error: "No encontrado para ese RUT" });
+      res.json(row);
+    } catch (err) {
+      console.error("Error al buscar práctica verano:", err);
+      res.status(500).json({ error: "Error interno" });
+    }
+  }
+);
+
+// crear inscripcion, solo admin
+app.post(
+  "/api/practica-verano",
+  requireAuth(["COORDINATION"]),
+  async (req, res) => {
+    const {
+      rut,
+      nombreEstudiante,
+      carrera,
+      empresa,
+      areaPractica,
+      email,
+      telefono,
+    } = req.body;
+
+    if (!rut || !nombreEstudiante || !carrera || !empresa || !areaPractica) {
+      return res.status(400).json({ error: "Faltan datos obligatorios" });
+    }
+
+    try {
+      const created = await prisma.practicaVerano.create({
+        data: {
+          rut,
+          nombreEstudiante,
+          carrera,
+          empresa,
+          areaPractica,
+          email: email || null,
+          telefono: telefono || null,
+        },
+      });
+      res.status(201).json(created);
+    } catch (err) {
+      console.error("Error al crear práctica verano:", err);
+      res.status(500).json({ error: "No se pudo crear la práctica de verano" });
+    }
+  }
+);
+
+// actualizar estado y datos
+app.put(
+  "/api/practica-verano/:id",
+  requireAuth(["COORDINATION"]),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    const { estado, ...rest } = req.body;
+
+    try {
+      const updated = await prisma.practicaVerano.update({
+        where: { id },
+        data: {
+          ...rest,
+          ...(estado ? { estado } : {}),
+        },
+      });
+      res.json(updated);
+    } catch (err) {
+      console.error("Error al actualizar práctica verano:", err);
+      res.status(500).json({ error: "No se pudo actualizar" });
+    }
+  }
+);
+
+// eliminar registro
+app.delete(
+  "/api/practica-verano/:id",
+  requireAuth(["COORDINATION"]),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    try {
+      await prisma.practicaVerano.delete({ where: { id } });
+      res.json({ message: "Eliminado correctamente" });
+    } catch (err) {
+      console.error("Error al eliminar práctica verano:", err);
+      res.status(500).json({ error: "No se pudo eliminar" });
+    }
+  }
+);
+
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`✅ API Backend unificado escuchando en http://localhost:${PORT}`);
