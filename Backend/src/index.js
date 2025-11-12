@@ -206,33 +206,12 @@ app.get("/api/my/requests", requireAuth(["STUDENT"]), async (req, res) => {
 });
 
 // la aprobacion
-app.post(
+/*app.post(
   "/api/gestion/applications/:id/approve",
   requireAuth(["COORDINATION"]),
   async (req, res) => {
     const id = Number(req.params.id);
     try {
-      const appData = await prisma.application.findUnique({ where: { id } });
-      if (!appData)
-        return res.status(404).json({ error: "Postulación no encontrada" });
-
-      const student = await prisma.student.findUnique({
-        where: { id: appData.studentId },
-      });
-      if (!student)
-        return res.status(400).json({ error: "Estudiante no vslido" });
-
-      await prisma.application.update({
-        where: { id },
-        data: { status: Status.APPROVED },
-      });
-
-      const practice = await prisma.practice.create({
-        data: {
-          studentId: student.id,
-          status: PracticeStatus.ABIERTA,
-        },
-      });
 
       res.json({
         message: "Postulacion aprobada y practica creada",
@@ -243,7 +222,7 @@ app.post(
       res.status(500).json({ error: "Error al aprobar postulacion" });
     }
   }
-);
+);*/
 
 app.post(
   "/api/gestion/practice-requests/:id/approve",
