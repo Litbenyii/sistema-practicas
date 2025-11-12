@@ -68,7 +68,7 @@ export default function Login({ onLoginSuccess }) {
         </form>
 
         <p className="text-xs text-slate-400">
-          Para demo: alumno@uni.cl / 123456 o admin@uni.cl / Admin123
+          para probar: alumno@uni.cl / 123456 o admin@uni.cl / Admin123
         </p>
       </div>
     </div>

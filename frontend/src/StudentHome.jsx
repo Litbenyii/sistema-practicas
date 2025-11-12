@@ -3,9 +3,11 @@ import {
   getOffers,
   getMyRequests,
   createPracticeRequest,
+  createApplication,
 } from "./api";
 
 export default function StudentHome({ token, name, onLogout }) {
+  const authToken = token || localStorage.getItem("token");
   const [offers, setOffers] = useState([]);
 
   const [applications, setApplications] = useState([]);
@@ -26,30 +28,28 @@ export default function StudentHome({ token, name, onLogout }) {
   });
   const [sending, setSending] = useState(false);
 
+    async function loadData() {
+    try {
+      setError("");
+      setMsg("");
+      const [offersData, myReq] = await Promise.all([
+        getOffers(authToken),
+        getMyRequests(authToken),
+      ]);
+      setOffers(offersData || []);
+      setApplications(myReq?.applications || []);
+      setPracticeRequests(myReq?.practices || []);
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "No se pudieron cargar los datos");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        setError("");
-        setMsg("");
-
-        const [offersData, myReq] = await Promise.all([
-          getOffers(token),
-          getMyRequests(token),
-        ]);
-
-        setOffers(offersData || []);
-        setApplications(myReq?.applications || []);
-        setPracticeRequests(myReq?.practices || []);
-      } catch (err) {
-        console.error(err);
-        setError(err.message || "No se pudieron cargar los datos");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, [token]);
+    loadData();
+  }, [authToken]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -96,9 +96,7 @@ export default function StudentHome({ token, name, onLogout }) {
       });
 
       // refrescar las solicitudes
-      const myReq = await getMyRequests(token);
-      setApplications(myReq?.applications || []);
-      setPracticeRequests(myReq?.practices || []);
+      await loadData();
     } catch (err) {
       console.error(err);
       setError(err.message || "No se pudo registrar la practica externa.");
@@ -106,6 +104,21 @@ export default function StudentHome({ token, name, onLogout }) {
       setSending(false);
     }
   };
+
+  const handleApply = async (offerId) => {
+    setError("");
+    setMsg("");
+    try {
+      await createApplication(authToken, offerId);
+      setMsg("Postulación enviada correctamente.");
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Error al postular.");
+    }
+  };
+
+  
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -165,12 +178,8 @@ export default function StudentHome({ token, name, onLogout }) {
                   </p>
                 </div>
                 <button
-                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm hover:bg-slate-800"
-                  onClick={() => {
-                    alert(
-                      "Aquí puedes conectar la postulación a la oferta usando el endpoint /api/applications."
-                    );
-                  }}
+                  onClick={() => handleApply(o.id)}
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm hover:bg-slate-800"
                 >
                   Postular
                 </button>

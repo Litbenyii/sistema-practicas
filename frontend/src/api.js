@@ -47,6 +47,14 @@ export function createPracticeRequest(token, payload) {
   });
 }
 
+export async function createApplication(token, offerId) {
+  return request("/applications", {
+    method: "POST",
+    body: { offerId },
+    token,
+  });
+}
+
 // ver las solicitudes/postulaciones inscritas
 export function getMyRequests(token) {
   return request("/my/requests", { token });
