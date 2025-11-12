@@ -224,7 +224,7 @@ app.get("/api/my/requests", requireAuth(["STUDENT"]), async (req, res) => {
   }
 );*/
 
-app.post(
+/*app.post(
   "/api/gestion/practice-requests/:id/approve",
   requireAuth(["COORDINATION"]),
   async (req, res) => {
@@ -261,7 +261,7 @@ app.post(
       res.status(500).json({ error: "Error al aprobar práctica externa" });
     }
   }
-);
+);*/
 
 // practicas abiertas
 app.get(
