@@ -1,4 +1,3 @@
-// src/api.js
 const API_URL = "http://localhost:4000/api";
 
 async function request(path, options = {}) {

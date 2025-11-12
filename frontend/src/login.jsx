@@ -41,7 +41,7 @@ export default function Login({ onLoginSuccess }) {
             </label>
             <input
               className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900/70"
-              value={email}
+              //value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
             />
@@ -53,7 +53,7 @@ export default function Login({ onLoginSuccess }) {
             </label>
             <input
               className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900/70"
-              value={password}
+              //value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
             />
