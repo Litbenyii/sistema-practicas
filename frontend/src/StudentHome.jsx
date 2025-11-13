@@ -7,17 +7,16 @@ import {
 } from "./api";
 
 export default function StudentHome({ token, name, onLogout }) {
-  const authToken = token || localStorage.getItem("token");
   const [offers, setOffers] = useState([]);
-
   const [applications, setApplications] = useState([]);
   const [practiceRequests, setPracticeRequests] = useState([]);
 
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
 
-  // Formulario para inscribir practica
+  // formulario para practica externa
   const [form, setForm] = useState({
     company: "",
     tutorName: "",
@@ -28,28 +27,43 @@ export default function StudentHome({ token, name, onLogout }) {
   });
   const [sending, setSending] = useState(false);
 
-    async function loadData() {
-    try {
-      setError("");
-      setMsg("");
-      const [offersData, myReq] = await Promise.all([
-        getOffers(authToken),
-        getMyRequests(authToken),
-      ]);
-      setOffers(offersData || []);
-      setApplications(myReq?.applications || []);
-      setPracticeRequests(myReq?.practices || []);
-    } catch (err) {
-      console.error(err);
-      setError(err?.message || "No se pudieron cargar los datos");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    loadData();
-  }, [authToken]);
+    const load = async () => {
+      setMsg("");
+      setError("");
+      setLoading(true);
+
+      try {
+        const results = await Promise.allSettled([
+          getOffers(token),
+          getMyRequests(token),
+        ]);
+
+        // ofertas
+        if (results[0].status === "fulfilled") {
+          setOffers(results[0].value || []);
+        } else {
+          console.error("Error cargando ofertas:", results[0].reason);
+          setOffers([]);
+        }
+
+        // solicitudes
+        if (results[1].status === "fulfilled") {
+          const myReq = results[1].value || {};
+          setApplications(myReq.applications || []);
+          setPracticeRequests(myReq.practices || []);
+        } else {
+          console.error("Error cargando solicitudes:", results[1].reason);
+          setApplications([]);
+          setPracticeRequests([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -68,7 +82,9 @@ export default function StudentHome({ token, name, onLogout }) {
       !form.startDate ||
       !form.endDate
     ) {
-      setError("Completa todos los campos obligatorios de la practica externa.");
+      setError(
+        "Completa todos los campos obligatorios de la práctica externa."
+      );
       return;
     }
 
@@ -84,7 +100,7 @@ export default function StudentHome({ token, name, onLogout }) {
         details: form.details,
       });
 
-      setMsg("Practica externa enviada para evaluacion.");
+      setMsg("Práctica externa enviada para evaluación.");
 
       setForm({
         company: "",
@@ -95,11 +111,13 @@ export default function StudentHome({ token, name, onLogout }) {
         details: "",
       });
 
-      // refrescar las solicitudes
-      await loadData();
+      // recargar las solicitudes del estudiante
+      const myReq = await getMyRequests(token);
+      setApplications(myReq?.applications || []);
+      setPracticeRequests(myReq?.practices || []);
     } catch (err) {
       console.error(err);
-      setError(err.message || "No se pudo registrar la practica externa.");
+      setError(err.message || "No se pudo registrar la práctica externa.");
     } finally {
       setSending(false);
     }
@@ -109,16 +127,18 @@ export default function StudentHome({ token, name, onLogout }) {
     setError("");
     setMsg("");
     try {
-      await createApplication(authToken, offerId);
+      await createApplication(token, offerId);
       setMsg("Postulación enviada correctamente.");
-      await loadData();
+
+      // recargar solicitudes
+      const myReq = await getMyRequests(token);
+      setApplications(myReq?.applications || []);
+      setPracticeRequests(myReq?.practices || []);
     } catch (err) {
       console.error(err);
-      setError(err?.message || "Error al postular.");
+      setError(err.message || "No se pudo enviar la postulación.");
     }
   };
-
-  
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -141,7 +161,9 @@ export default function StudentHome({ token, name, onLogout }) {
       </header>
 
       <main className="p-10 space-y-8">
-        {loading && <p className="text-slate-500 text-sm">Cargando datos...</p>}
+        {loading && (
+          <p className="text-slate-500 text-sm">Cargando datos...</p>
+        )}
 
         {error && (
           <div className="bg-red-50 text-red-700 px-4 py-2 rounded-xl text-sm">
@@ -155,7 +177,7 @@ export default function StudentHome({ token, name, onLogout }) {
           </div>
         )}
 
-        {/* Postular a practica */}
+        {/* Postular a oferta */}
         <section className="bg-white rounded-2xl shadow-sm p-6">
           <h2 className="font-semibold mb-4">Postular a oferta disponible</h2>
           {offers.length === 0 ? (
@@ -173,9 +195,7 @@ export default function StudentHome({ token, name, onLogout }) {
                   <p className="text-xs text-slate-500">
                     {o.company} — {o.location}
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {o.details}
-                  </p>
+                  <p className="text-xs text-slate-400 mt-1">{o.details}</p>
                 </div>
                 <button
                   onClick={() => handleApply(o.id)}
@@ -188,10 +208,13 @@ export default function StudentHome({ token, name, onLogout }) {
           )}
         </section>
 
-        {/* Regitrar las practocas */}
+        {/* Registrar práctica externa */}
         <section className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
           <h2 className="font-semibold">Registrar práctica externa</h2>
-          <form onSubmit={handlePracticeSubmit} className="grid gap-3 md:grid-cols-2">
+          <form
+            onSubmit={handlePracticeSubmit}
+            className="grid gap-3 md:grid-cols-2"
+          >
             <div className="md:col-span-1">
               <input
                 name="company"
@@ -241,7 +264,7 @@ export default function StudentHome({ token, name, onLogout }) {
                 name="details"
                 value={form.details}
                 onChange={handleChange}
-                placeholder="Objetivos de la practica"
+                placeholder="Objetivos de la práctica"
                 rows={3}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
@@ -258,7 +281,7 @@ export default function StudentHome({ token, name, onLogout }) {
           </form>
         </section>
 
-        {/* las solicitudes */}
+        {/* Listados */}
         <section className="bg-white rounded-2xl shadow-sm p-6 grid gap-6 md:grid-cols-2">
           <div>
             <h3 className="font-semibold mb-2 text-sm">
@@ -284,9 +307,7 @@ export default function StudentHome({ token, name, onLogout }) {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-2 text-sm">
-              Prácticas externas
-            </h3>
+            <h3 className="font-semibold mb-2 text-sm">Prácticas externas</h3>
             {practiceRequests.length === 0 ? (
               <p className="text-slate-500 text-xs">Sin registros.</p>
             ) : (
