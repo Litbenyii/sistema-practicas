@@ -3,7 +3,8 @@ const { Status, PracticeStatus } = require("@prisma/client");
 const { getStudentFromUser } = require("./application.service");
 
 async function createExternalPractice(userId, payload) {
-  const { company, tutorName, tutorEmail, startDate, endDate, details } = payload;
+  const { company, tutorName, tutorEmail, startDate, endDate, details } =
+    payload;
 
   if (!company || !tutorName || !tutorEmail || !startDate || !endDate) {
     throw new Error("Faltan datos obligatorios");
@@ -37,4 +38,74 @@ async function listOpenPractices() {
   });
 }
 
-module.exports = { createExternalPractice, listOpenPractices };
+async function listExternalPracticeRequests() {
+  const requests = await prisma.practiceRequest.findMany({
+    include: {
+      Student: {
+        include: {
+          User: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return requests.map((r) => ({
+    id: r.id,
+    company: r.company,
+    tutorName: r.tutorName,
+    tutorEmail: r.tutorEmail,
+    startDate: r.startDate,
+    endDate: r.endDate,
+    status: r.status,
+    student: r.Student
+      ? {
+          id: r.Student.id,
+          career: r.Student.career,
+          name: r.Student.User?.name,
+          email: r.Student.User?.email,
+          rut: r.Student.User?.rut,
+        }
+      : null,
+  }));
+}
+
+async function approvePracticeRequest(practiceRequestId) {
+  const request = await prisma.practiceRequest.findUnique({
+    where: { id: practiceRequestId },
+  });
+
+  if (!request) {
+    const err = new Error("Solicitud de práctica externa no encontrada");
+    err.status = 404;
+    throw err;
+  }
+
+  if (request.status !== Status.PEND_EVAL) {
+    const err = new Error("La solicitud ya fue procesada");
+    err.status = 400;
+    throw err;
+  }
+
+  const [practice] = await prisma.$transaction([
+    prisma.practice.create({
+      data: {
+        studentId: request.studentId,
+        status: PracticeStatus.ABIERTA,
+      },
+    }),
+    prisma.practiceRequest.update({
+      where: { id: practiceRequestId },
+      data: { status: Status.APPROVED },
+    }),
+  ]);
+
+  return practice;
+}
+
+module.exports = {
+  createExternalPractice,
+  listOpenPractices,
+  listExternalPracticeRequests,
+  approvePracticeRequest,
+};

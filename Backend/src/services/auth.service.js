@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { prisma } = require("../config/prisma");
 const { Role } = require("@prisma/client");
-const { config } = require("../config/env");
+const  config  = require("../config/env");
 
 async function login(email, password) {
   const user = await prisma.user.findUnique({ where: { email } });
@@ -19,7 +19,8 @@ async function login(email, password) {
 
   const token = jwt.sign(
     { id: user.id, role: user.role, name: user.name },
-    config.jwtSecret
+    config.jwtSecret,
+    { expiresIn: "8h" }
   );
 
   return { token, role: user.role, name: user.name };
