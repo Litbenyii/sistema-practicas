@@ -1,30 +1,26 @@
-const router = require("express").Router();
-const { requireAuth } = require("../middleware/auth");
+const express = require("express");
+const router = express.Router();
+
+const { verifyToken, requireCoordination } = require("../middleware/auth");
+
 const {
-  getOpenPractices,
-  getPracticeRequests,
-  postApprovePracticeRequest,
-  postOffer,
+  createOfferController,
+  listOffersController,
+  listExternalRequestsController,
+  approveExternalRequestController,
 } = require("../controllers/coordination.controller");
 
-router.get(
-  "/gestion/practices",
-  requireAuth(["COORDINATION"]),
-  getOpenPractices
-);
+router.use(verifyToken);
 
-router.get(
-  "/gestion/practice-requests",
-  requireAuth(["COORDINATION"]),
-  getPracticeRequests
-);
+router.use(requireCoordination);
 
+router.get("/offers", listOffersController);
+router.post("/offers", createOfferController);
+
+router.get("/external-requests", listExternalRequestsController);
 router.post(
-  "/gestion/practice-requests/:id/approve",
-  requireAuth(["COORDINATION"]),
-  postApprovePracticeRequest
+  "/external-requests/:id/approve",
+  approveExternalRequestController
 );
-
-router.post("/offers", requireAuth(["COORDINATION"]), postOffer);
 
 module.exports = router;

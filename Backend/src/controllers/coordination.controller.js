@@ -1,68 +1,85 @@
 const {
-  listOpenPractices,
-  listExternalPracticeRequests,
-  approvePracticeRequest,
+  createOfferService,
+  listOffersService,
+} = require("../services/offer.service");
+const {
+  listExternalRequestsService,
+  approveExternalPracticeRequestService,
 } = require("../services/practice.service");
-const offerService = require("../services/offer.service");
 
-async function getOpenPractices(req, res) {
+async function createOfferController(req, res) {
   try {
-    const practices = await listOpenPractices();
-    res.json(practices);
-  } catch (err) {
-    console.error("Error al listar prácticas:", err);
-    res.status(500).json({ error: "No se pudieron cargar las prácticas" });
-  }
-}
+    const { title, company, location, hours, modality, details } = req.body;
 
-async function getPracticeRequests(req, res) {
-  try {
-    const requests = await listExternalPracticeRequests();
-    res.json(requests);
-  } catch (err) {
-    console.error("Error al listar solicitudes de práctica externa:", err);
-    res.status(500).json({
-      error: "No se pudieron cargar las solicitudes de práctica externa",
-    });
-  }
-}
-
-async function postApprovePracticeRequest(req, res) {
-  try {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) {
-      return res.status(400).json({ error: "ID de solicitud inválido" });
+    if (!title || !company || !location || !details) {
+      return res.status(400).json({
+        message: "Faltan campos obligatorios (título, empresa, ubicación, detalles).",
+      });
     }
 
-    const practice = await approvePracticeRequest(id);
-
-    return res.json({
-      message: "Práctica externa aprobada correctamente",
-      practice,
+    const offer = await createOfferService({
+      title,
+      company,
+      location,
+      hours,
+      modality,
+      details,
     });
+
+    return res.status(201).json(offer);
   } catch (err) {
-    console.error("Error al aprobar práctica externa:", err);
+    console.error("Error creando oferta desde Coordinación:", err);
     return res
-      .status(err.status || 500)
-      .json({ error: err.message || "No se pudo aprobar la práctica externa" });
+      .status(500)
+      .json({ message: "Error interno del servidor al crear la oferta." });
   }
 }
 
-async function postOffer(req, res) {
+async function listOffersController(req, res) {
   try {
-    const offer = await offerService.createOffer(req.body);
-    return res.status(201).json(offer);
+    const offers = await listOffersService();
+    return res.json(offers);
   } catch (err) {
-    console.error("Error al crear oferta:", err);
+    console.error("Error listando ofertas:", err);
     return res
-      .status(err.status || 500)
-      .json({ error: err.message || "No se pudo crear la oferta" });
+      .status(500)
+      .json({ message: "Error interno del servidor al listar ofertas." });
+  }
+}
+
+async function listExternalRequestsController(req, res) {
+  try {
+    const requests = await listExternalRequestsService();
+    return res.json(requests);
+  } catch (err) {
+    console.error("Error listando solicitudes externas:", err);
+    return res.status(500).json({
+      message: "Error interno del servidor al listar solicitudes externas.",
+    });
+  }
+}
+
+async function approveExternalRequestController(req, res) {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID de solicitud inválido." });
+    }
+
+    const result = await approveExternalPracticeRequestService(id);
+    return res.json(result);
+  } catch (err) {
+    console.error("Error aprobando práctica externa:", err);
+    return res
+      .status(500)
+      .json({ message: "Error interno del servidor al aprobar la práctica." });
   }
 }
 
 module.exports = {
-  getOpenPractices,
-  getPracticeRequests,
-  postApprovePracticeRequest,
-  postOffer,
+  createOfferController,
+  listOffersController,
+  listExternalRequestsController,
+  approveExternalRequestController,
 };

@@ -6,19 +6,33 @@ async function getStudentFromUser(userId) {
 }
 
 async function createApplication(userId, offerId) {
-  if (!offerId) throw new Error("Falta ID de oferta");
+
+  const parsedOfferId = Number(offerId);
+
+  if (!parsedOfferId) {
+    throw new Error("Falta ID de oferta");
+  }
 
   const student = await getStudentFromUser(userId);
-  if (!student) throw new Error("Estudiante no registrado en el sistema");
+  if (!student) {
+    throw new Error("Estudiante no registrado en el sistema");
+  }
 
-  const offer = await prisma.offer.findUnique({ where: { id: offerId } });
-  if (!offer || !offer.active) throw new Error("Oferta no válida");
+  const offer = await prisma.offer.findUnique({ where: { id: parsedOfferId } });
+  if (!offer || !offer.active) {
+    throw new Error("Oferta no válida");
+  }
 
-  // (opcional) evitar duplicadas:
   const dup = await prisma.application.findFirst({
-    where: { studentId: student.id, offerId: offer.id },
+    where: {
+      studentId: student.id,
+      offerId: offer.id,
+    },
   });
-  if (dup) throw new Error("Ya postulaste a esta oferta");
+
+  if (dup) {
+    throw new Error("Ya postulaste a esta oferta");
+  }
 
   return prisma.application.create({
     data: {
@@ -31,7 +45,9 @@ async function createApplication(userId, offerId) {
 
 async function myRequests(userId) {
   const student = await getStudentFromUser(userId);
-  if (!student) return { applications: [], practices: [] };
+  if (!student) {
+    return { applications: [], practices: [] };
+  }
 
   const applications = await prisma.application.findMany({
     where: { studentId: student.id },

@@ -1,60 +1,54 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { prisma } = require("../config/prisma");
-const { Role } = require("@prisma/client");
-const  config  = require("../config/env");
+const prisma = require("../config/prisma");
+const config = require("../config/env");
 
 async function login(email, password) {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw new Error("Usuario no existe");
 
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) throw new Error("Contraseña incorrecta");
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
 
-  if (user.role === "STUDENT" && !user.enabled) {
-    const err = new Error("Estudiante no habilitado para registrar práctica");
+  if (!user) {
+    const err = new Error("Usuario no existe");
+    err.status = 401;
+    throw err;
+  }
+
+  if (!user.enabled) {
+    const err = new Error("Usuario deshabilitado");
     err.status = 403;
     throw err;
   }
 
+  const ok = await bcrypt.compare(password, user.password);
+  if (!ok) {
+    const err = new Error("Contraseña incorrecta");
+    err.status = 401;
+    throw err;
+  }
+
   const token = jwt.sign(
-    { id: user.id, role: user.role, name: user.name },
+    {
+      id: user.id,
+      role: user.role,
+      email: user.email,
+    },
     config.jwtSecret,
     { expiresIn: "8h" }
   );
 
-  return { token, role: user.role, name: user.name };
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+  };
 }
 
-async function createStudent({ email, password, rut, name, career }) {
-  if (!email || !password || !rut || !name || !career) {
-    throw new Error("Faltan datos del estudiante");
-  }
-
-  const existe = await prisma.user.findUnique({ where: { email } });
-  if (existe) throw new Error("Ya existe un usuario con ese correo");
-
-  const hash = await bcrypt.hash(password, 10);
-
-  const user = await prisma.user.create({
-    data: {
-      email,
-      rut,
-      name,
-      password: hash,
-      role: Role.STUDENT,
-      enabled: true,
-    },
-  });
-
-  const student = await prisma.student.create({
-    data: {
-      userId: user.id,
-      career,
-    },
-  });
-
-  return { userId: user.id, studentId: student.id };
-}
-
-module.exports = { login, createStudent };
+module.exports = {
+  login,
+};

@@ -1,12 +1,15 @@
 const API_URL = "http://localhost:4000";
 
 async function request(path, options = {}) {
+
+  const { headers, ...rest } = options;
+
   const res = await fetch(`${API_URL}${path}`, {
+    ...rest,
     headers: {
       "Content-Type": "application/json",
-      ...(options.headers || {}),
+      ...(headers || {}),
     },
-    ...options,
   });
 
   if (!res.ok) {
@@ -14,7 +17,9 @@ async function request(path, options = {}) {
     try {
       const data = await res.json();
       msg = data.error || msg;
-    } catch (e) {}
+    } catch (e) {
+
+    }
     throw new Error(msg);
   }
 
@@ -36,14 +41,12 @@ export async function getOffers(token) {
 }
 
 export async function getMyRequests(token) {
-
   return request("/api/my/requests", {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
 export async function createPracticeRequest(token, payload) {
-
   return request("/api/practices", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },

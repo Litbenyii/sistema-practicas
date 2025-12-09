@@ -1,10 +1,26 @@
-const router = require("express").Router();
-const { requireAuth } = require("../middleware/auth");
-const c = require("../controllers/student.controller");
+const express = require("express");
+const router = express.Router();
 
-router.get("/offers", requireAuth(["STUDENT"]), c.getOffers);
-router.post("/applications", requireAuth(["STUDENT"]), c.postApplication);
-router.post("/practices", requireAuth(["STUDENT"]), c.postExternalPractice);
-router.get("/my/requests", requireAuth(["STUDENT"]), c.getMyRequests);
+const studentController = require("../controllers/student.controller");
+const { verifyToken, requireStudent } = require("../middleware/auth");
+
+router.use(verifyToken);
+router.use(requireStudent);
+
+router.get("/offers", studentController.getOffers);
+
+router.get("/applications", studentController.getApplications);
+
+router.post("/applications/:offerId", studentController.applyToOffer);
+
+router.get(
+  "/practice-requests",
+  studentController.getPracticeRequests
+);
+
+router.post(
+  "/practice-requests",
+  studentController.createPracticeRequest
+);
 
 module.exports = router;

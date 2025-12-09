@@ -1,32 +1,44 @@
 const { prisma } = require("../config/prisma");
 
-async function listActiveOffers() {
-  return prisma.offer.findMany({
-    where: { active: true },
-    orderBy: { createdAt: "desc" },
-  });
-}
+async function createOfferService({ title, company, location, hours, modality, details }) {
 
-async function createOffer(payload) {
-  const { title, company, location, hours, modality, details } = payload;
+  const extraLines = [];
 
-  if (!title || !company || !location) {
-    const err = new Error("Título, empresa y ubicación son obligatorios");
-    err.status = 400;
-    throw err;
+  if (hours) {
+    extraLines.push(`Horas estimadas: ${hours}`);
   }
 
-  return prisma.offer.create({
+  if (modality) {
+    extraLines.push(`Modalidad: ${modality}`);
+  }
+
+  const description = [details, extraLines.join(" — ")]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const offer = await prisma.offer.create({
     data: {
       title,
       company,
       location,
-      hours: hours || 320,
-      modality: modality || "",
-      details: details || "",
+      details: description,
       active: true,
     },
   });
+
+  return offer;
 }
 
-module.exports = { listActiveOffers, createOffer };
+async function listOffersService() {
+  const offers = await prisma.offer.findMany({
+    where: { active: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return offers;
+}
+
+module.exports = {
+  createOfferService,
+  listOffersService,
+};
