@@ -17,7 +17,7 @@ async function request(path, options = {}) {
       const data = await res.json();
       msg = data.message || data.error || msg;
     } catch (e) {
-      
+
     }
     throw new Error(msg);
   }
@@ -78,5 +78,25 @@ export async function createOffer(token, payload) {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
+  });
+}
+
+export async function getCoordinatorApplications(token){
+  return request("/api/coord/applications", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function approveApplication(token, id) {
+  return request(`/api/coord/applications/${id}/approve`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function rejectApplication(token, id) {
+  return request(`/api/coord/applications/${id}/reject`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
   });
 }

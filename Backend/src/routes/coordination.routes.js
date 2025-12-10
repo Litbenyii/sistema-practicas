@@ -8,19 +8,22 @@ const {
   listOffersController,
   listExternalRequestsController,
   approveExternalRequestController,
+  listApplicationsController,
+  approveApplicationController,
+  rejectApplicationController,
 } = require("../controllers/coordination.controller");
 
 router.use(verifyToken);
-
 router.use(requireCoordination);
 
 router.get("/offers", listOffersController);
 router.post("/offers", createOfferController);
 
 router.get("/external-requests", listExternalRequestsController);
-router.post(
-  "/external-requests/:id/approve",
-  approveExternalRequestController
-);
+router.post("/external-requests/:id/approve", approveExternalRequestController);
+
+router.get("/applications", listApplicationsController);
+router.post("/applications/:id/approve", approveApplicationController);
+router.post("/applications/:id/reject", rejectApplicationController);
 
 module.exports = router;

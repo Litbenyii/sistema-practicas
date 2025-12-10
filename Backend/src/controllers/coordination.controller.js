@@ -8,6 +8,12 @@ const {
   approvePracticeRequest,
 } = require("../services/practice.service");
 
+const {
+  listApplicationsForCoordination,
+  approveApplication,
+  rejectApplication,
+} = require("../services/application.service");
+
 async function createOfferController(req, res) {
   try {
     const { title, company, location, hours, modality, details } = req.body;
@@ -80,9 +86,54 @@ async function approveExternalRequestController(req, res) {
   }
 }
 
+async function listApplicationsController(req, res) {
+  try {
+    const applications = await listApplicationsForCoordination();
+    return res.json(applications);
+  } catch (err) {
+    console.error("Error listando postulaciones internas:", err);
+    return res.status(500).json({
+      message: "Error interno del servidor al listar postulaciones.",
+    });
+  }
+}
+
+async function approveApplicationController(req, res) {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID de postulación inválido." });
+    }
+
+    const result = await approveApplication(id);
+    return res.json(result);
+  } catch (err) {
+    console.error("Error aprobando postulación:", err);
+    return res.status(500).json({
+      message: "Error interno del servidor al aprobar la postulación.",
+    });
+  }
+}
+
+async function rejectApplicationController(req, res) {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID de postulación inválido." });
+    }
+
+    const result = await rejectApplication(id);
+    return res.json(result);
+  } catch (err) {
+    console.error("Error rechazando postulación:", err);
+    return res.status(500).json({
+      message: "Error interno del servidor al rechazar la postulación.",
+    });
+  }
+}
+
 module.exports = {
-  createOfferController,
-  listOffersController,
-  listExternalRequestsController,
-  approveExternalRequestController,
-};
+  createOfferController, listOffersController, listExternalRequestsController, approveExternalRequestController, listApplicationsController,
+  approveApplicationController, rejectApplicationController,};

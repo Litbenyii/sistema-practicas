@@ -1,12 +1,13 @@
 const { prisma } = require("../config/prisma");
 const { Status } = require("@prisma/client");
 
+// Buscar el registro Student asociado a un User
 async function getStudentFromUser(userId) {
   return prisma.student.findFirst({ where: { userId } });
 }
 
+// Crear una nueva postulacion a oferta interna
 async function createApplication(userId, offerId) {
-
   const parsedOfferId = Number(offerId);
 
   if (!parsedOfferId) {
@@ -18,7 +19,10 @@ async function createApplication(userId, offerId) {
     throw new Error("Estudiante no registrado en el sistema");
   }
 
-  const offer = await prisma.offer.findUnique({ where: { id: parsedOfferId } });
+  const offer = await prisma.offer.findUnique({
+    where: { id: parsedOfferId },
+  });
+
   if (!offer || !offer.active) {
     throw new Error("Oferta no válida");
   }
@@ -43,6 +47,7 @@ async function createApplication(userId, offerId) {
   });
 }
 
+// Peticiones del alumno internas y externas
 async function myRequests(userId) {
   const student = await getStudentFromUser(userId);
   if (!student) {
@@ -63,4 +68,57 @@ async function myRequests(userId) {
   return { applications, practices };
 }
 
-module.exports = { getStudentFromUser, createApplication, myRequests };
+// pendiente a evaluacion
+async function listApplicationsForCoordination() {
+  const applications = await prisma.application.findMany({
+    where: {
+      status: Status.PEND_EVAL,
+    },
+    include: {
+      Offer: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return applications;
+}
+
+// Cambiar estado de una postulacion interna
+async function updateApplicationStatus(applicationId, newStatus) {
+  const id = Number(applicationId);
+
+  if (!id) {
+    throw new Error("ID de postulación inválido");
+  }
+
+  const app = await prisma.application.findUnique({ where: { id } });
+  if (!app) {
+    throw new Error("Postulación no encontrada");
+  }
+
+  const updated = await prisma.application.update({
+    where: { id },
+    data: {
+      status: newStatus,
+    },
+  });
+
+  return updated;
+}
+
+async function approveApplication(applicationId) {
+  return updateApplicationStatus(applicationId, Status.APPROVED);
+}
+
+async function rejectApplication(applicationId) {
+  return updateApplicationStatus(applicationId, Status.REJECTED);
+}
+
+module.exports = {
+  getStudentFromUser,
+  createApplication,
+  myRequests,
+  listApplicationsForCoordination,
+  approveApplication,
+  rejectApplication,
+};

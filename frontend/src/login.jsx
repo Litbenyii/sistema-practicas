@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState("admin@uni.cl");
-  const [password, setPassword] = useState("Admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -59,7 +59,7 @@ export default function Login({ onLogin }) {
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@uni.cl o alumno@uni.cl"
+              //placeholder="admin@uni.cl o alumno@uni.cl"
             />
           </div>
 
@@ -72,7 +72,7 @@ export default function Login({ onLogin }) {
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Admin123 o 123456"
+              //placeholder="Admin123 o 123456"
             />
           </div>
 

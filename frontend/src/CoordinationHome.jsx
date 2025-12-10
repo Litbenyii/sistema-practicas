@@ -3,10 +3,14 @@ import {
   getCoordinatorPracticeRequests,
   approvePracticeRequest,
   createOffer,
+  getCoordinatorApplications,
+  approveApplication,
+  rejectApplication,
 } from "./api";
 
 export default function CoordinationHome({ name, onLogout, token }) {
   const [requests, setRequests] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
@@ -22,24 +26,32 @@ export default function CoordinationHome({ name, onLogout, token }) {
   });
   const [savingOffer, setSavingOffer] = useState(false);
 
-  // crear solicitudes practica externa
-  const loadRequests = async () => {
+  // Cargar solicitudes de practicas externas y postulaciones internas
+  const loadData = async () => {
     try {
       setError("");
       setMsg("");
       setLoading(true);
-      const data = await getCoordinatorPracticeRequests(token);
-      setRequests(data || []);
+
+      const [reqs, apps] = await Promise.all([
+        getCoordinatorPracticeRequests(token),
+        getCoordinatorApplications(token),
+      ]);
+
+      setRequests(reqs || []);
+      setApplications(apps || []);
     } catch (err) {
       console.error(err);
-      setError(err.message || "No se pudieron cargar las solicitudes.");
+      setError(
+        err.message || "No se pudieron cargar los datos de coordinación."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadRequests();
+    loadData();
   }, [token]);
 
   // cambios de form
@@ -86,7 +98,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
     }
   };
 
-  const handleApprove = async (id) => {
+  const handleApproveExternal = async (id) => {
     const confirmar = window.confirm(
       "¿Seguro que quieres aprobar esta práctica externa?"
     );
@@ -97,10 +109,59 @@ export default function CoordinationHome({ name, onLogout, token }) {
       setMsg("");
       await approvePracticeRequest(token, id);
       setMsg("Práctica externa aprobada correctamente.");
-      await loadRequests();
+      await loadData();
     } catch (err) {
       console.error(err);
       setError(err.message || "No se pudo aprobar la práctica externa.");
+    }
+  };
+
+  const handleApproveApplication = async (id) => {
+    const confirmar = window.confirm(
+      "¿Seguro que quieres aprobar esta postulación a oferta interna?"
+    );
+    if (!confirmar) return;
+
+    try {
+      setError("");
+      setMsg("");
+      await approveApplication(token, id);
+      setMsg("Postulación aprobada correctamente.");
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "No se pudo aprobar la postulación.");
+    }
+  };
+
+  const handleRejectApplication = async (id) => {
+    const confirmar = window.confirm(
+      "¿Seguro que quieres rechazar esta postulación a oferta interna?"
+    );
+    if (!confirmar) return;
+
+    try {
+      setError("");
+      setMsg("");
+      await rejectApplication(token, id);
+      setMsg("Postulación rechazada correctamente.");
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "No se pudo rechazar la postulación.");
+    }
+  };
+
+  const mapStatus = (status) => {
+    switch (status) {
+      case "PEND_EVAL":
+        return "Pendiente de revisión";
+      case "APPROVED":
+        return "Aprobada";
+      case "REJECTED":
+        return "Rechazada";
+      default:
+        return status;
     }
   };
 
@@ -220,14 +281,75 @@ export default function CoordinationHome({ name, onLogout, token }) {
           </form>
         </section>
 
-        {/* Solicitudes de practicas externas */}
+        {/* Postulaciones a ofertas internas */}
+        <section className="bg-white rounded-2xl shadow-sm p-6">
+          <h2 className="font-semibold text-sm mb-4">
+            Postulaciones a ofertas internas
+          </h2>
+
+          {applications.length === 0 ? (
+            <p className="text-slate-500 text-xs">
+              No hay postulaciones registradas.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {applications.map((a) => (
+                <div
+                  key={a.id}
+                  className="border border-slate-100 rounded-xl px-4 py-3 flex justify-between items-center"
+                >
+                  <div className="text-xs">
+                    <p className="font-medium">
+                      {a.Offer?.title} — {a.Offer?.company}
+                    </p>
+                    <p className="text-slate-500">
+                      Alumno ID: {a.studentId}
+                    </p>
+                    <p className="text-slate-500">
+                      Estado:{" "}
+                      <span className="font-semibold">
+                        {mapStatus(a.status)}
+                      </span>
+                    </p>
+                    <p className="text-slate-400">
+                      Creada: {a.createdAt?.slice(0, 10)}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {a.status === "PEND_EVAL" && (
+                      <>
+                        <button
+                          onClick={() => handleApproveApplication(a.id)}
+                          className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs hover:bg-emerald-500"
+                        >
+                          Aprobar
+                        </button>
+                        <button
+                          onClick={() => handleRejectApplication(a.id)}
+                          className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs hover:bg-red-500"
+                        >
+                          Rechazar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Solicitudes de prácticas externas */}
         <section className="bg-white rounded-2xl shadow-sm p-6">
           <h2 className="font-semibold text-sm mb-4">
             Solicitudes de prácticas externas
           </h2>
 
           {requests.length === 0 ? (
-            <p className="text-slate-500 text-xs">No hay solicitudes registradas.</p>
+            <p className="text-slate-500 text-xs">
+              No hay solicitudes registradas.
+            </p>
           ) : (
             <div className="space-y-2">
               {requests.map((r) => (
@@ -247,14 +369,17 @@ export default function CoordinationHome({ name, onLogout, token }) {
                       {r.endDate?.slice(0, 10)}
                     </p>
                     <p className="text-slate-500">
-                      Estado: <span className="font-semibold">{r.status}</span>
+                      Estado:{" "}
+                      <span className="font-semibold">
+                        {mapStatus(r.status)}
+                      </span>
                     </p>
                   </div>
 
                   <div className="flex gap-2">
                     {r.status === "PEND_EVAL" && (
                       <button
-                        onClick={() => handleApprove(r.id)}
+                        onClick={() => handleApproveExternal(r.id)}
                         className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs hover:bg-emerald-500"
                       >
                         Aprobar
