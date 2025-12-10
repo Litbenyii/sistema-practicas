@@ -1,7 +1,6 @@
 const API_URL = "http://localhost:4000";
 
 async function request(path, options = {}) {
-
   const { headers, ...rest } = options;
 
   const res = await fetch(`${API_URL}${path}`, {
@@ -16,9 +15,9 @@ async function request(path, options = {}) {
     let msg = "Error en la solicitud";
     try {
       const data = await res.json();
-      msg = data.error || msg;
+      msg = data.message || data.error || msg;
     } catch (e) {
-
+      
     }
     throw new Error(msg);
   }
@@ -35,19 +34,19 @@ export async function login(email, password) {
 }
 
 export async function getOffers(token) {
-  return request("/api/offers", {
+  return request("/api/student/offers", {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
 export async function getMyRequests(token) {
-  return request("/api/my/requests", {
+  return request("/api/student/my/requests", {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
 export async function createPracticeRequest(token, payload) {
-  return request("/api/practices", {
+  return request("/api/student/practice-requests", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
@@ -55,28 +54,27 @@ export async function createPracticeRequest(token, payload) {
 }
 
 export async function createApplication(token, offerId) {
-  return request("/api/applications", {
+  return request(`/api/student/applications/${offerId}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ offerId }),
   });
 }
 
 export async function getCoordinatorPracticeRequests(token) {
-  return request("/api/gestion/practice-requests", {
+  return request("/api/coord/external-requests", {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
 export async function approvePracticeRequest(token, id) {
-  return request(`/api/gestion/practice-requests/${id}/approve`, {
+  return request(`/api/coord/external-requests/${id}/approve`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
 export async function createOffer(token, payload) {
-  return request("/api/offers", {
+  return request("/api/coord/offers", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),

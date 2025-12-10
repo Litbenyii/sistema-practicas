@@ -2,9 +2,10 @@ const {
   createOfferService,
   listOffersService,
 } = require("../services/offer.service");
+
 const {
-  listExternalRequestsService,
-  approveExternalPracticeRequestService,
+  listExternalPracticeRequests,
+  approvePracticeRequest,
 } = require("../services/practice.service");
 
 async function createOfferController(req, res) {
@@ -13,7 +14,8 @@ async function createOfferController(req, res) {
 
     if (!title || !company || !location || !details) {
       return res.status(400).json({
-        message: "Faltan campos obligatorios (título, empresa, ubicación, detalles).",
+        message:
+          "Faltan campos obligatorios (título, empresa, ubicación, detalles).",
       });
     }
 
@@ -29,9 +31,9 @@ async function createOfferController(req, res) {
     return res.status(201).json(offer);
   } catch (err) {
     console.error("Error creando oferta desde Coordinación:", err);
-    return res
-      .status(500)
-      .json({ message: "Error interno del servidor al crear la oferta." });
+    return res.status(500).json({
+      message: "Error interno del servidor al crear la oferta.",
+    });
   }
 }
 
@@ -41,20 +43,21 @@ async function listOffersController(req, res) {
     return res.json(offers);
   } catch (err) {
     console.error("Error listando ofertas:", err);
-    return res
-      .status(500)
-      .json({ message: "Error interno del servidor al listar ofertas." });
+    return res.status(500).json({
+      message: "Error interno del servidor al listar ofertas.",
+    });
   }
 }
 
 async function listExternalRequestsController(req, res) {
   try {
-    const requests = await listExternalRequestsService();
+    const requests = await listExternalPracticeRequests();
     return res.json(requests);
   } catch (err) {
     console.error("Error listando solicitudes externas:", err);
     return res.status(500).json({
-      message: "Error interno del servidor al listar solicitudes externas.",
+      message:
+        "Error interno del servidor al listar solicitudes externas.",
     });
   }
 }
@@ -67,13 +70,13 @@ async function approveExternalRequestController(req, res) {
       return res.status(400).json({ message: "ID de solicitud inválido." });
     }
 
-    const result = await approveExternalPracticeRequestService(id);
+    const result = await approvePracticeRequest(id);
     return res.json(result);
   } catch (err) {
     console.error("Error aprobando práctica externa:", err);
-    return res
-      .status(500)
-      .json({ message: "Error interno del servidor al aprobar la práctica." });
+    return res.status(500).json({
+      message: "Error interno del servidor al aprobar la práctica.",
+    });
   }
 }
 

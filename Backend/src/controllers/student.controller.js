@@ -1,4 +1,8 @@
 const prisma = require("../config/prisma");
+const {
+  myRequests,
+  createApplication,
+} = require("../services/application.service");
 
 async function getStudentByUserId(userId) {
   const student = await prisma.student.findUnique({
@@ -22,7 +26,9 @@ async function getOffers(req, res) {
     return res.json(offers);
   } catch (error) {
     console.error("Error en getOffers:", error);
-    return res.status(500).json({ message: "Error al obtener ofertas" });
+    return res
+      .status(500)
+      .json({ message: "Error al obtener las ofertas de práctica" });
   }
 }
 
@@ -32,9 +38,7 @@ async function getApplications(req, res) {
 
     const applications = await prisma.application.findMany({
       where: { studentId: student.id },
-      include: {
-        Offer: true,
-      },
+      include: { Offer: true },
       orderBy: { createdAt: "desc" },
     });
 
@@ -49,37 +53,18 @@ async function getApplications(req, res) {
 
 async function applyToOffer(req, res) {
   try {
-    const student = await getStudentByUserId(req.user.id);
-    const offerId = parseInt(req.params.offerId, 10);
+    const offerId = req.params.offerId;
 
-    if (isNaN(offerId)) {
-      return res.status(400).json({ message: "ID de oferta inválido" });
-    }
-
-    const existing = await prisma.application.findFirst({
-      where: {
-        studentId: student.id,
-        offerId,
-      },
-    });
-
-    if (existing) {
-      return res
-        .status(400)
-        .json({ message: "Ya postulaste a esta oferta" });
-    }
-
-    const application = await prisma.application.create({
-      data: {
-        studentId: student.id,
-        offerId,
-      },
-    });
+    const application = await createApplication(req.user.id, offerId);
 
     return res.status(201).json(application);
   } catch (error) {
     console.error("Error en applyToOffer:", error);
-    return res.status(500).json({ message: "Error al postular a la oferta" });
+    return res
+      .status(400)
+      .json({
+        message: error.message || "Error al postular a la oferta",
+      });
   }
 }
 
@@ -128,18 +113,19 @@ async function createPracticeRequest(req, res) {
       !startDate ||
       !endDate
     ) {
-      return res
-        .status(400)
-        .json({ message: "Faltan datos obligatorios de la práctica externa" });
+      return res.status(400).json({
+        message:
+          "Faltan datos obligatorios de la práctica externa",
+      });
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res
-        .status(400)
-        .json({ message: "Fechas de inicio o término inválidas" });
+      return res.status(400).json({
+        message: "Fechas de inicio o término inválidas",
+      });
     }
 
     const request = await prisma.practiceRequest.create({
@@ -157,9 +143,21 @@ async function createPracticeRequest(req, res) {
     return res.status(201).json(request);
   } catch (error) {
     console.error("Error en createPracticeRequest:", error);
-    return res
-      .status(500)
-      .json({ message: "Error al registrar la práctica externa" });
+    return res.status(500).json({
+      message: "Error al registrar la práctica externa",
+    });
+  }
+}
+
+async function getMyRequests(req, res) {
+  try {
+    const data = await myRequests(req.user.id);
+    return res.json(data);
+  } catch (error) {
+    console.error("Error en getMyRequests:", error);
+    return res.status(500).json({
+      message: "Error al obtener tus solicitudes",
+    });
   }
 }
 
@@ -169,4 +167,5 @@ module.exports = {
   applyToOffer,
   getPracticeRequests,
   createPracticeRequest,
+  getMyRequests,
 };

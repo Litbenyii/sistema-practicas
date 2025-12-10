@@ -11,6 +11,8 @@ router.get("/offers", studentController.getOffers);
 
 router.get("/applications", studentController.getApplications);
 
+router.get("/my/requests", studentController.getMyRequests);
+
 router.post("/applications/:offerId", studentController.applyToOffer);
 
 router.get(

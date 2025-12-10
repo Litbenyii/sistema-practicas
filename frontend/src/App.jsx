@@ -21,16 +21,30 @@ function App() {
 
   console.log("Usuario cargado en App:", user);
 
-  if (!user) {
+  const token = localStorage.getItem("token");
+
+  if (!user || !token) {
     return <Login onLogin={handleLogin} />;
   }
 
   if (user.role === "STUDENT") {
-    return <StudentHome user={user} onLogout={handleLogout} />;
+    return (
+      <StudentHome
+        token={token}
+        name={user.name}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   if (user.role === "COORDINATION") {
-    return <CoordinationHome user={user} onLogout={handleLogout} />;
+    return (
+      <CoordinationHome
+        token={token}
+        name={user.name}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   return (

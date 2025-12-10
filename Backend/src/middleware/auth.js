@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
-const { prisma } = require("../config/prisma");
+const prisma = require("../config/prisma");
+const config = require("../config/env");
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+const JWT_SECRET = config.jwtSecret || "dev_secret_change_me";
 
 async function verifyToken(req, res, next) {
   try {
@@ -15,6 +16,12 @@ async function verifyToken(req, res, next) {
 
     const payload = jwt.verify(token, JWT_SECRET);
 
+    if (!payload || !payload.id) {
+      return res
+        .status(401)
+        .json({ message: "Token inválido: falta información de usuario." });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
     });
@@ -23,28 +30,41 @@ async function verifyToken(req, res, next) {
       return res.status(401).json({ message: "Usuario no autorizado." });
     }
 
-    req.user = user;
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    };
+
     next();
   } catch (err) {
     console.error("Error en verifyToken:", err);
-    return res.status(401).json({ message: "Token inválido o expirado." });
+    return res
+      .status(401)
+      .json({ message: "Token inválido o expirado." });
   }
 }
 
 function requireStudent(req, res, next) {
   if (!req.user) {
-    return res.status(401).json({ message: "No autenticado." });
+    return res
+      .status(401)
+      .json({ message: "No autenticado (falta usuario en petición)." });
   }
   if (req.user.role !== "STUDENT") {
-    return res.status(403).json({ message: "Rol no autorizado (solo STUDENT)." });
+    return res
+      .status(403)
+      .json({ message: "Rol no autorizado (solo STUDENT)." });
   }
   next();
 }
 
-
 function requireCoordination(req, res, next) {
   if (!req.user) {
-    return res.status(401).json({ message: "No autenticado." });
+    return res
+      .status(401)
+      .json({ message: "No autenticado (falta usuario en petición)." });
   }
   if (req.user.role !== "COORDINATION") {
     return res
