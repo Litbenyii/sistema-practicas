@@ -65,6 +65,22 @@ export default function StudentHome({ token, name, onLogout }) {
     load();
   }, [token]);
 
+  const mapStatus = (status) => {
+    switch (status) {
+      case "PEND_EVAL":
+        return "Pendiente a evaluacion";
+      case "APPROVED":
+        return "Aprobada";
+      case "REJECTED":
+        return "Rechazada";
+      default:
+        return status;
+    }
+  };
+
+  const appliedOfferIds = new Set(applications.map((a) => a.offerId));
+  const availableOffers = offers.filter((o) => !appliedOfferIds.has(o.id));
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
@@ -180,22 +196,29 @@ export default function StudentHome({ token, name, onLogout }) {
         {/* Postular a oferta */}
         <section className="bg-white rounded-2xl shadow-sm p-6">
           <h2 className="font-semibold mb-4">Postular a oferta disponible</h2>
+
           {offers.length === 0 ? (
             <p className="text-slate-500 text-sm">
               No hay ofertas activas por ahora.
             </p>
+          ) : availableOffers.length === 0 ? (
+            <p className="text-slate-500 text-sm">
+              No hay ofertas disponibles para postular (ya postulaste a todas las activas).
+            </p>
           ) : (
-            offers.map((o) => (
+            availableOffers.map((o) => (
               <div
                 key={o.id}
                 className="border border-slate-100 rounded-xl p-4 mb-3 flex justify-between items-center"
               >
                 <div>
-                  <h3 className="font-medium">{o.title}</h3>
+                  <h3 className="font-medium text-sm">{o.title}</h3>
                   <p className="text-xs text-slate-500">
                     {o.company} — {o.location}
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">{o.details}</p>
+                  {o.details && (
+                    <p className="text-xs text-slate-400 mt-1">{o.details}</p>
+                  )}
                 </div>
                 <button
                   onClick={() => handleApply(o.id)}
@@ -299,7 +322,7 @@ export default function StudentHome({ token, name, onLogout }) {
                     {a.Offer?.title || "Oferta"} — {a.Offer?.company}
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    Estado: {a.status}
+                    Estado: {mapStatus(a.status)}
                   </p>
                 </div>
               ))
@@ -325,7 +348,7 @@ export default function StudentHome({ token, name, onLogout }) {
                     {p.endDate?.slice(0, 10)}
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    Estado: {p.status}
+                    Estado: {mapStatus(p.status)}
                   </p>
                 </div>
               ))
