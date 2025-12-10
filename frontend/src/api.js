@@ -100,3 +100,10 @@ export async function rejectApplication(token, id) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export async function rejectPracticeRequest(token, id) {
+  return request(`/api/coord/external-requests/${id}/reject`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

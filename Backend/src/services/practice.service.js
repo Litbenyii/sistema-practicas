@@ -76,7 +76,7 @@ async function approvePracticeRequest(practiceRequestId) {
   });
 
   if (!request) {
-    const err = new Error("Solicitud de práctica externa no encontrada");
+    const err = new Error("Solicitud de practica externa no encontrada");
     err.status = 404;
     throw err;
   }
@@ -103,9 +103,35 @@ async function approvePracticeRequest(practiceRequestId) {
   return practice;
 }
 
+async function rejectPracticeRequest(practiceRequestId) {
+  const request = await prisma.practiceRequest.findUnique({
+    where: { id: practiceRequestId },
+  });
+
+  if (!request) {
+    const err = new Error("Solicitud de practica externa no encontrada");
+    err.status = 404;
+    throw err;
+  }
+
+  if (request.status !== Status.PEND_EVAL) {
+    const err = new Error("La solicitud ya fue procesada");
+    err.status = 400;
+    throw err;
+  }
+
+  const updated = await prisma.practiceRequest.update({
+    where: { id: practiceRequestId },
+    data: { status: Status.REJECTED },
+  });
+
+  return updated;
+}
+
 module.exports = {
   createExternalPractice,
   listOpenPractices,
   listExternalPracticeRequests,
   approvePracticeRequest,
+  rejectPracticeRequest,
 };

@@ -6,6 +6,7 @@ const {
 const {
   listExternalPracticeRequests,
   approvePracticeRequest,
+  rejectPracticeRequest,
 } = require("../services/practice.service");
 
 const {
@@ -13,6 +14,8 @@ const {
   approveApplication,
   rejectApplication,
 } = require("../services/application.service");
+
+//--------------------------------------
 
 async function createOfferController(req, res) {
   try {
@@ -55,6 +58,8 @@ async function listOffersController(req, res) {
   }
 }
 
+//----------------------------------
+
 async function listExternalRequestsController(req, res) {
   try {
     const requests = await listExternalPracticeRequests();
@@ -85,6 +90,26 @@ async function approveExternalRequestController(req, res) {
     });
   }
 }
+
+async function rejectExternalRequestController(req, res) {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID de solicitud inválido." });
+    }
+
+    const result = await rejectPracticeRequest(id);
+    return res.json(result);
+  } catch (err) {
+    console.error("Error rechazando práctica externa:", err);
+    return res.status(500).json({
+      message: "Error interno del servidor al rechazar la práctica.",
+    });
+  }
+}
+
+//--------------------------
 
 async function listApplicationsController(req, res) {
   try {
@@ -135,5 +160,12 @@ async function rejectApplicationController(req, res) {
 }
 
 module.exports = {
-  createOfferController, listOffersController, listExternalRequestsController, approveExternalRequestController, listApplicationsController,
-  approveApplicationController, rejectApplicationController,};
+  createOfferController,
+  listOffersController,
+  listExternalRequestsController,
+  approveExternalRequestController,
+  rejectExternalRequestController,
+  listApplicationsController,
+  approveApplicationController,
+  rejectApplicationController,
+};

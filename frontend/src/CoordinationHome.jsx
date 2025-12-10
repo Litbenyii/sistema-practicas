@@ -6,6 +6,7 @@ import {
   getCoordinatorApplications,
   approveApplication,
   rejectApplication,
+  rejectPracticeRequest,
 } from "./api";
 
 export default function CoordinationHome({ name, onLogout, token }) {
@@ -113,6 +114,24 @@ export default function CoordinationHome({ name, onLogout, token }) {
     } catch (err) {
       console.error(err);
       setError(err.message || "No se pudo aprobar la práctica externa.");
+    }
+  };
+
+  const handleRejectExternal = async (id) => {
+    const confirmar = window.confirm(
+      "¿Seguro que quieres rechazar esta práctica externa?"
+    );
+    if (!confirmar) return;
+
+    try {
+      setError("");
+      setMsg("");
+      await rejectPracticeRequest(token, id);
+      setMsg("Práctica externa rechazada correctamente.");
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "No se pudo rechazar la práctica externa.");
     }
   };
 
@@ -378,12 +397,20 @@ export default function CoordinationHome({ name, onLogout, token }) {
 
                   <div className="flex gap-2">
                     {r.status === "PEND_EVAL" && (
-                      <button
-                        onClick={() => handleApproveExternal(r.id)}
-                        className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs hover:bg-emerald-500"
-                      >
-                        Aprobar
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleApproveExternal(r.id)}
+                          className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs hover:bg-emerald-500"
+                        >
+                          Aprobar
+                        </button>
+                        <button
+                          onClick={() => handleRejectExternal(r.id)}
+                          className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs hover:bg-red-500"
+                        >
+                          Rechazar
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
