@@ -107,3 +107,11 @@ export async function rejectPracticeRequest(token, id) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export async function createStudent(token, payload) {
+  return request("/api/coord/students", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+}

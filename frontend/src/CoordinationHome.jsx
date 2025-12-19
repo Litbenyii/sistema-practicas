@@ -192,6 +192,15 @@ export default function CoordinationHome({ name, onLogout, token }) {
     return r.status === externalFilter;
   });
 
+  const [studentForm, setStudentForm] = useState({
+    name: "",
+    email: "",
+    rut: "",
+    career: "",
+    password: "",
+  });
+  const [creatingStudent, setCreatingStudent] = useState(false);
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
