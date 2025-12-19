@@ -79,7 +79,19 @@ export default function StudentHome({ token, name, onLogout }) {
   };
 
   const appliedOfferIds = new Set(applications.map((a) => a.offerId));
-  const availableOffers = offers.filter((o) => !appliedOfferIds.has(o.id));
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const availableOffers = offers.filter((o) => {
+    if (appliedOfferIds.has(o.id)) return false;
+
+    if (!o.deadline) return true;
+
+    const d = new Date(o.deadline);
+    d.setHours(0, 0, 0, 0);
+    return d >= today;
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;

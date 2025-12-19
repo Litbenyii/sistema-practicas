@@ -15,11 +15,13 @@ const {
   rejectApplication,
 } = require("../services/application.service");
 
+const { createStudentByCoordination } = require("../services/student.service");
+
 //--------------------------------------
 
 async function createOfferController(req, res) {
   try {
-    const { title, company, location, hours, modality, details } = req.body;
+    const { title, company, location, hours, modality, details, deadline } = req.body;
 
     if (!title || !company || !location || !details) {
       return res.status(400).json({
@@ -35,6 +37,7 @@ async function createOfferController(req, res) {
       hours,
       modality,
       details,
+      deadline,
     });
 
     return res.status(201).json(offer);
@@ -54,6 +57,27 @@ async function listOffersController(req, res) {
     console.error("Error listando ofertas:", err);
     return res.status(500).json({
       message: "Error interno del servidor al listar ofertas.",
+    });
+  }
+}
+
+async function createStudentController(req, res) {
+  try {
+    const { name, email, rut, career, password } = req.body;
+
+    const student = await createStudentByCoordination({
+      name,
+      email,
+      rut,
+      career,
+      password,
+    });
+
+    return res.status(201).json(student);
+  } catch (err) {
+    console.error("Error creando estudiante desde coordinación:", err);
+    return res.status(400).json({
+      message: err.message || "Error al crear el estudiante.",
     });
   }
 }
@@ -168,4 +192,5 @@ module.exports = {
   listApplicationsController,
   approveApplicationController,
   rejectApplicationController,
+  createStudentController,
 };

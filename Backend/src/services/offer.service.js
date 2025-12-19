@@ -23,6 +23,7 @@ async function createOfferService({ title, company, location, hours, modality, d
       location,
       details: description,
       active: true,
+      deadline: deadline ? new Date(deadline) : null,
     },
   });
 

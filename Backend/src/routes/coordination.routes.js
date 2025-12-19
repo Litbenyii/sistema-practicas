@@ -11,6 +11,7 @@ const {
   listApplicationsController,
   approveApplicationController,
   rejectApplicationController,
+  createStudentController,
 } = require("../controllers/coordination.controller");
 
 router.use(verifyToken);
@@ -25,5 +26,7 @@ router.post("/external-requests/:id/approve", approveExternalRequestController);
 router.get("/applications", listApplicationsController);
 router.post("/applications/:id/approve", approveApplicationController);
 router.post("/applications/:id/reject", rejectApplicationController);
+
+router.post("/students", createStudentController);
 
 module.exports = router;

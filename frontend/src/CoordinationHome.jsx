@@ -15,6 +15,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
+  const [externalFilter, setExternalFilter] = useState("PEND_EVAL"); 
 
   // formulario crear oferta
   const [offerForm, setOfferForm] = useState({
@@ -24,6 +25,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
     hours: 320,
     modality: "",
     details: "",
+    deadline: "",
   });
   const [savingOffer, setSavingOffer] = useState(false);
 
@@ -80,6 +82,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
         hours: Number(offerForm.hours) || 320,
         modality: offerForm.modality,
         details: offerForm.details,
+        deadline: offerForm.deadline || null,
       });
 
       setMsg("Oferta creada correctamente.");
@@ -184,6 +187,11 @@ export default function CoordinationHome({ name, onLogout, token }) {
     }
   };
 
+  const filteredRequests = requests.filter((r) => {
+    if (externalFilter === "ALL") return true;
+    return r.status === externalFilter;
+  });
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -277,6 +285,17 @@ export default function CoordinationHome({ name, onLogout, token }) {
               />
             </div>
 
+            <div className="md:col-span-1">
+              <input
+                type="date"
+                name="deadline"
+                value={offerForm.deadline}
+                onChange={handleOfferChange}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+                placeholder="Fecha límite de postulación"
+              />
+            </div>
+
             <div className="md:col-span-2">
               <textarea
                 name="details"
@@ -360,6 +379,19 @@ export default function CoordinationHome({ name, onLogout, token }) {
         </section>
 
         {/* Solicitudes de prácticas externas */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-semibold text-sm">Solicitudes de prácticas externas</h2>
+          <select
+            value={externalFilter}
+            onChange={(e) => setExternalFilter(e.target.value)}
+            className="text-xs border border-slate-200 rounded-lg px-2 py-1"
+          >
+            <option value="PEND_EVAL">Pendientes</option>
+            <option value="APPROVED">Aprobadas</option>
+            <option value="REJECTED">Rechazadas</option>
+            <option value="ALL">Todas</option>
+          </select>
+        </div>
         <section className="bg-white rounded-2xl shadow-sm p-6">
           <h2 className="font-semibold text-sm mb-4">
             Solicitudes de prácticas externas
@@ -371,7 +403,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
             </p>
           ) : (
             <div className="space-y-2">
-              {requests.map((r) => (
+              {filteredRequests.map((r) => (
                 <div
                   key={r.id}
                   className="border border-slate-100 rounded-xl px-4 py-3 flex justify-between items-center"
