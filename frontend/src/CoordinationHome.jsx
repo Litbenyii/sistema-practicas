@@ -93,6 +93,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
         hours: 320,
         modality: "",
         details: "",
+        deadline: "",
       });
     } catch (err) {
       console.error(err);
@@ -273,6 +274,18 @@ export default function CoordinationHome({ name, onLogout, token }) {
                 onChange={handleOfferChange}
                 placeholder="Ubicación (ej: Concepción)"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+              />
+            </div>
+
+            {/* Fecha límite de postulación */}
+            <div className="md:col-span-1">
+              <input
+                type="date"
+                name="deadline"
+                value={offerForm.deadline}
+                onChange={handleOfferChange}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+                placeholder="Fecha límite de postulación"
               />
             </div>
 

@@ -6,18 +6,15 @@ import {
   createApplication,
 } from "./api";
 
-export default function StudentHome({ token, name, onLogout }) {
+export default function StudentHome({ name, onLogout, token }) {
   const [offers, setOffers] = useState([]);
   const [applications, setApplications] = useState([]);
-  const [practiceRequests, setPracticeRequests] = useState([]);
-
+  const [practices, setPractices] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
 
-  // formulario para practica externa
-  const [form, setForm] = useState({
+  const [practiceForm, setPracticeForm] = useState({
     company: "",
     tutorName: "",
     tutorEmail: "",
@@ -25,50 +22,46 @@ export default function StudentHome({ token, name, onLogout }) {
     endDate: "",
     details: "",
   });
-  const [sending, setSending] = useState(false);
+  const [savingPractice, setSavingPractice] = useState(false);
+
+  // Cargar ofertas + mis solicitudes (internas y externas)
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      setMsg("");
+
+      const [offersData, myRequests] = await Promise.all([
+        getOffers(token),
+        getMyRequests(token),
+      ]);
+
+      setOffers(offersData || []);
+      setApplications(myRequests?.applications || []);
+      setPractices(myRequests?.practices || []);
+    } catch (err) {
+      console.error(err);
+      setError(
+        err.message || "No se pudo cargar la información del estudiante."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      setMsg("");
-      setError("");
-      setLoading(true);
-
-      try {
-        const results = await Promise.allSettled([
-          getOffers(token),
-          getMyRequests(token),
-        ]);
-
-        // ofertas
-        if (results[0].status === "fulfilled") {
-          setOffers(results[0].value || []);
-        } else {
-          console.error("Error cargando ofertas:", results[0].reason);
-          setOffers([]);
-        }
-
-        // solicitudes
-        if (results[1].status === "fulfilled") {
-          const myReq = results[1].value || {};
-          setApplications(myReq.applications || []);
-          setPracticeRequests(myReq.practices || []);
-        } else {
-          console.error("Error cargando solicitudes:", results[1].reason);
-          setApplications([]);
-          setPracticeRequests([]);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // Ofertas disponibles = todas menos las que ya tienen postulación
+  const appliedOfferIds = new Set(applications.map((a) => a.offerId));
+  const availableOffers = offers.filter((o) => !appliedOfferIds.has(o.id));
 
   const mapStatus = (status) => {
     switch (status) {
       case "PEND_EVAL":
-        return "Pendiente a evaluacion";
+        return "Pendiente de evaluación";
       case "APPROVED":
         return "Aprobada";
       case "REJECTED":
@@ -78,24 +71,10 @@ export default function StudentHome({ token, name, onLogout }) {
     }
   };
 
-  const appliedOfferIds = new Set(applications.map((a) => a.offerId));
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const availableOffers = offers.filter((o) => {
-    if (appliedOfferIds.has(o.id)) return false;
-
-    if (!o.deadline) return true;
-
-    const d = new Date(o.deadline);
-    d.setHours(0, 0, 0, 0);
-    return d >= today;
-  });
-
-  const handleChange = (e) => {
+  // Manejo form práctica externa
+  const handlePracticeChange = (e) => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    setPracticeForm((f) => ({ ...f, [name]: value }));
   };
 
   const handlePracticeSubmit = async (e) => {
@@ -103,34 +82,27 @@ export default function StudentHome({ token, name, onLogout }) {
     setError("");
     setMsg("");
 
-    if (
-      !form.company ||
-      !form.tutorName ||
-      !form.tutorEmail ||
-      !form.startDate ||
-      !form.endDate
-    ) {
-      setError(
-        "Completa todos los campos obligatorios de la práctica externa."
-      );
+    const { company, tutorName, tutorEmail, startDate, endDate } =
+      practiceForm;
+
+    if (!company || !tutorName || !tutorEmail || !startDate || !endDate) {
+      setError("Todos los campos de la práctica externa son obligatorios.");
       return;
     }
 
     try {
-      setSending(true);
-
+      setSavingPractice(true);
       await createPracticeRequest(token, {
-        company: form.company,
-        tutorName: form.tutorName,
-        tutorEmail: form.tutorEmail,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        details: form.details,
+        company: practiceForm.company,
+        tutorName: practiceForm.tutorName,
+        tutorEmail: practiceForm.tutorEmail,
+        startDate: practiceForm.startDate,
+        endDate: practiceForm.endDate,
+        details: practiceForm.details,
       });
 
       setMsg("Práctica externa enviada para evaluación.");
-
-      setForm({
+      setPracticeForm({
         company: "",
         tutorName: "",
         tutorEmail: "",
@@ -139,29 +111,27 @@ export default function StudentHome({ token, name, onLogout }) {
         details: "",
       });
 
-      // recargar las solicitudes del estudiante
-      const myReq = await getMyRequests(token);
-      setApplications(myReq?.applications || []);
-      setPracticeRequests(myReq?.practices || []);
+      await loadData();
     } catch (err) {
       console.error(err);
       setError(err.message || "No se pudo registrar la práctica externa.");
     } finally {
-      setSending(false);
+      setSavingPractice(false);
     }
   };
 
   const handleApply = async (offerId) => {
-    setError("");
-    setMsg("");
+    const confirmar = window.confirm(
+      "¿Seguro que quieres postular a esta oferta de práctica?"
+    );
+    if (!confirmar) return;
+
     try {
+      setError("");
+      setMsg("");
       await createApplication(token, offerId);
       setMsg("Postulación enviada correctamente.");
-
-      // recargar solicitudes
-      const myReq = await getMyRequests(token);
-      setApplications(myReq?.applications || []);
-      setPracticeRequests(myReq?.practices || []);
+      await loadData();
     } catch (err) {
       console.error(err);
       setError(err.message || "No se pudo enviar la postulación.");
@@ -190,7 +160,7 @@ export default function StudentHome({ token, name, onLogout }) {
 
       <main className="p-10 space-y-8">
         {loading && (
-          <p className="text-slate-500 text-sm">Cargando datos...</p>
+          <p className="text-slate-500 text-sm">Cargando información...</p>
         )}
 
         {error && (
@@ -205,47 +175,57 @@ export default function StudentHome({ token, name, onLogout }) {
           </div>
         )}
 
-        {/* Postular a oferta */}
+        {/* Ofertas disponibles */}
         <section className="bg-white rounded-2xl shadow-sm p-6">
-          <h2 className="font-semibold mb-4">Postular a oferta disponible</h2>
+          <h2 className="font-semibold text-sm mb-4">
+            Postular a oferta disponible
+          </h2>
 
-          {offers.length === 0 ? (
-            <p className="text-slate-500 text-sm">
-              No hay ofertas activas por ahora.
-            </p>
-          ) : availableOffers.length === 0 ? (
-            <p className="text-slate-500 text-sm">
-              No hay ofertas disponibles para postular (ya postulaste a todas las activas).
+          {availableOffers.length === 0 ? (
+            <p className="text-slate-500 text-xs">
+              No hay ofertas disponibles para postular (ya postulaste a todas
+              las activas).
             </p>
           ) : (
-            availableOffers.map((o) => (
-              <div
-                key={o.id}
-                className="border border-slate-100 rounded-xl p-4 mb-3 flex justify-between items-center"
-              >
-                <div>
-                  <h3 className="font-medium text-sm">{o.title}</h3>
-                  <p className="text-xs text-slate-500">
-                    {o.company} — {o.location}
-                  </p>
-                  {o.details && (
-                    <p className="text-xs text-slate-400 mt-1">{o.details}</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleApply(o.id)}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm hover:bg-slate-800"
+            <div className="space-y-3">
+              {availableOffers.map((o) => (
+                <div
+                  key={o.id}
+                  className="border border-slate-100 rounded-xl px-4 py-3 flex justify-between items-center"
                 >
-                  Postular
-                </button>
-              </div>
-            ))
+                  <div className="text-xs">
+                    <p className="font-medium">{o.title}</p>
+                    <p className="text-slate-500">
+                      {o.company} — {o.location}
+                    </p>
+                    {o.details && (
+                      <p className="text-slate-500 text-[11px] mt-1">
+                        {o.details}
+                      </p>
+                    )}
+                    {o.deadline && (
+                      <p className="text-slate-400 text-[11px] mt-1">
+                        Postula hasta: {o.deadline.slice(0, 10)}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleApply(o.id)}
+                    className="px-4 py-1 rounded-lg bg-slate-900 text-white text-xs hover:bg-slate-800"
+                  >
+                    Postular
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </section>
 
         {/* Registrar práctica externa */}
         <section className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-          <h2 className="font-semibold">Registrar práctica externa</h2>
+          <h2 className="font-semibold text-sm">Registrar práctica externa</h2>
+
           <form
             onSubmit={handlePracticeSubmit}
             className="grid gap-3 md:grid-cols-2"
@@ -253,8 +233,8 @@ export default function StudentHome({ token, name, onLogout }) {
             <div className="md:col-span-1">
               <input
                 name="company"
-                value={form.company}
-                onChange={handleChange}
+                value={practiceForm.company}
+                onChange={handlePracticeChange}
                 placeholder="Empresa"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
@@ -262,108 +242,127 @@ export default function StudentHome({ token, name, onLogout }) {
             <div className="md:col-span-1">
               <input
                 name="tutorName"
-                value={form.tutorName}
-                onChange={handleChange}
+                value={practiceForm.tutorName}
+                onChange={handlePracticeChange}
                 placeholder="Nombre Supervisor"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
             </div>
+
             <div className="md:col-span-1">
               <input
                 name="tutorEmail"
-                type="email"
-                value={form.tutorEmail}
-                onChange={handleChange}
+                value={practiceForm.tutorEmail}
+                onChange={handlePracticeChange}
                 placeholder="Correo Supervisor"
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
             </div>
             <div className="md:col-span-1 flex gap-2">
               <input
-                name="startDate"
                 type="date"
-                value={form.startDate}
-                onChange={handleChange}
+                name="startDate"
+                value={practiceForm.startDate}
+                onChange={handlePracticeChange}
                 className="w-1/2 px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
               <input
-                name="endDate"
                 type="date"
-                value={form.endDate}
-                onChange={handleChange}
+                name="endDate"
+                value={practiceForm.endDate}
+                onChange={handlePracticeChange}
                 className="w-1/2 px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
             </div>
+
             <div className="md:col-span-2">
               <textarea
                 name="details"
-                value={form.details}
-                onChange={handleChange}
+                value={practiceForm.details}
+                onChange={handlePracticeChange}
                 placeholder="Objetivos de la práctica"
                 rows={3}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
               />
             </div>
+
             <div className="md:col-span-2 flex justify-end">
               <button
                 type="submit"
-                disabled={sending}
+                disabled={savingPractice}
                 className="px-6 py-2 bg-slate-900 text-white rounded-xl text-sm hover:bg-slate-800 disabled:opacity-60"
               >
-                {sending ? "Enviando..." : "Enviar solicitud"}
+                {savingPractice ? "Enviando..." : "Enviar solicitud"}
               </button>
             </div>
           </form>
         </section>
 
-        {/* Listados */}
-        <section className="bg-white rounded-2xl shadow-sm p-6 grid gap-6 md:grid-cols-2">
-          <div>
-            <h3 className="font-semibold mb-2 text-sm">
+        {/* Listados inferiores */}
+        <section className="grid gap-6 md:grid-cols-2">
+          {/* Postulaciones internas */}
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h2 className="font-semibold text-sm mb-4">
               Postulaciones a ofertas
-            </h3>
+            </h2>
             {applications.length === 0 ? (
-              <p className="text-slate-500 text-xs">Sin registros.</p>
+              <p className="text-slate-500 text-xs">
+                No has postulado a ninguna oferta interna.
+              </p>
             ) : (
-              applications.map((a) => (
-                <div
-                  key={a.id}
-                  className="border border-slate-100 rounded-xl px-3 py-2 mb-2"
-                >
-                  <p className="text-xs font-medium">
-                    {a.Offer?.title || "Oferta"} — {a.Offer?.company}
-                  </p>
-                  <p className="text-[10px] text-slate-500">
-                    Estado: {mapStatus(a.status)}
-                  </p>
-                </div>
-              ))
+              <div className="space-y-2">
+                {applications.map((a) => (
+                  <div
+                    key={a.id}
+                    className="border border-slate-100 rounded-xl px-4 py-3 text-xs"
+                  >
+                    <p className="font-medium">
+                      {a.Offer?.title} — {a.Offer?.company}
+                    </p>
+                    <p className="text-slate-500">
+                      Estado:{" "}
+                      <span className="font-semibold">
+                        {mapStatus(a.status)}
+                      </span>
+                    </p>
+                    <p className="text-slate-400">
+                      Creada: {a.createdAt?.slice(0, 10)}
+                    </p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          <div>
-            <h3 className="font-semibold mb-2 text-sm">Prácticas externas</h3>
-            {practiceRequests.length === 0 ? (
+          {/* Prácticas externas */}
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h2 className="font-semibold text-sm mb-4">Prácticas externas</h2>
+            {practices.length === 0 ? (
               <p className="text-slate-500 text-xs">Sin registros.</p>
             ) : (
-              practiceRequests.map((p) => (
-                <div
-                  key={p.id}
-                  className="border border-slate-100 rounded-xl px-3 py-2 mb-2"
-                >
-                  <p className="text-xs font-medium">{p.company}</p>
-                  <p className="text-[10px] text-slate-500">
-                    Tutor: {p.tutorName} ({p.tutorEmail})
-                  </p>
-                  <p className="text-[10px] text-slate-500">
-                    Desde {p.startDate?.slice(0, 10)} hasta{" "}
-                    {p.endDate?.slice(0, 10)}
-                  </p>
-                  <p className="text-[10px] text-slate-500">
-                    Estado: {mapStatus(p.status)}
-                  </p>
-                </div>
-              ))
+              <div className="space-y-2">
+                {practices.map((p) => (
+                  <div
+                    key={p.id}
+                    className="border border-slate-100 rounded-xl px-4 py-3 text-xs"
+                  >
+                    <p className="font-medium">{p.company}</p>
+                    <p className="text-slate-500">
+                      Tutor: {p.tutorName} ({p.tutorEmail})
+                    </p>
+                    <p className="text-slate-500">
+                      Desde {p.startDate?.slice(0, 10)} hasta{" "}
+                      {p.endDate?.slice(0, 10)}
+                    </p>
+                    <p className="text-slate-500">
+                      Estado:{" "}
+                      <span className="font-semibold">
+                        {mapStatus(p.status)}
+                      </span>
+                    </p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </section>
