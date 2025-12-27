@@ -77,25 +77,25 @@ export default function CoordinationHome({ name, onLogout, token }) {
     loadData();
   }, [token]);
 
-  const handleCloseOffer = async (offerId) => {
-    const confirmar = window.confirm(
-      "¿Seguro que quieres cerrar esta oferta? Los estudiantes ya no podrán postular."
-    );
-    if (!confirmar) return;
+const handleCloseOffer = async (offerId) => {
+  const confirmar = window.confirm(
+    "¿Seguro que quieres cerrar esta oferta? Los estudiantes ya no podrán postular."
+  );
+  if (!confirmar) return;
 
-    try {
-      setError("");
-      setMsg("");
-      await deactivateOffer(token, offerId);
-      setMsg("Oferta cerrada correctamente.");
+  try {
+    setError("");
+    setMsg("");
+    await deactivateOffer(token, offerId);
+    setMsg("Oferta cerrada correctamente.");
 
-      const offersData = await getCoordOffers(token);
-      setOffers(offersData || []);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "No se pudo cerrar la oferta.");
-    }
-  };
+    const offersData = await getCoordOffers(token);
+    setOffers(offersData || []);
+  } catch (err) {
+    console.error(err);
+    setError(err.message || "No se pudo cerrar la oferta.");
+  }
+};
 
   // cambios de form
   const handleOfferChange = (e) => {

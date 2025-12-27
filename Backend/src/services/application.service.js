@@ -1,12 +1,10 @@
 const { prisma } = require("../config/prisma");
 const { Status } = require("@prisma/client");
 
-// Buscar el registro Student asociado a un User
 async function getStudentFromUser(userId) {
   return prisma.student.findFirst({ where: { userId } });
 }
 
-// Crear una nueva postulacion a oferta interna
 async function createApplication(userId, offerId) {
   const parsedOfferId = Number(offerId);
 
@@ -26,9 +24,8 @@ async function createApplication(userId, offerId) {
   if (!offer || !offer.active) {
     throw new Error("Oferta no válida");
   }
-    //fecha limite de postulacion
-  const now = new Date();
-  if (offer.deadline && offer.deadline < now) {
+
+  if (offer.deadline && new Date() > offer.deadline) {
     throw new Error("La oferta ya cerró su periodo de postulación.");
   }
 
