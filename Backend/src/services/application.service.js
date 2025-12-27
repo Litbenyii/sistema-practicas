@@ -26,6 +26,13 @@ async function createApplication(userId, offerId) {
   if (!offer || !offer.active) {
     throw new Error("Oferta no válida");
   }
+    //fecha limite de postulacion
+    const now = new Date();
+  if (offer.deadline && offer.deadline < now) {
+    throw new Error(
+      "El periodo de postulación para esta oferta ya finalizó."
+    );
+  }
 
   const dup = await prisma.application.findFirst({
     where: {

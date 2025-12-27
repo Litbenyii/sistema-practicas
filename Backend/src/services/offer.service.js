@@ -1,6 +1,6 @@
 const { prisma } = require("../config/prisma");
 
-async function createOfferService({ title, company, location, hours, modality, details }) {
+async function createOfferService({ title, company, location, hours, modality, details, deadline }) {
 
   const extraLines = [];
 
@@ -31,8 +31,10 @@ async function createOfferService({ title, company, location, hours, modality, d
 }
 
 async function listOffersService() {
+  const now = new Date();
+
   const offers = await prisma.offer.findMany({
-    where: { active: true },
+    where: { active: true, OR: [{ deadline: null },{ deadline: { gte: now } }], }, // sin fecha limite o con fecha limite
     orderBy: { createdAt: "desc" },
   });
 
