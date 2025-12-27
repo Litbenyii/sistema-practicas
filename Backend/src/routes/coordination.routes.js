@@ -12,6 +12,7 @@ const {
   approveApplicationController,
   rejectApplicationController,
   createStudentController,
+  deactivateOfferController,
 } = require("../controllers/coordination.controller");
 
 router.use(verifyToken);
@@ -19,6 +20,8 @@ router.use(requireCoordination);
 
 router.get("/offers", listOffersController);
 router.post("/offers", createOfferController);
+
+router.post("/offers/:id/deactivate", deactivateOfferController);
 
 router.get("/external-requests", listExternalRequestsController);
 router.post("/external-requests/:id/approve", approveExternalRequestController);

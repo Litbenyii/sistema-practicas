@@ -41,7 +41,36 @@ async function listOffersService() {
   return offers;
 }
 
+async function deactivateOfferService(offerId) {
+  const id = Number(offerId);
+
+  if (!id) {
+    const err = new Error("ID de oferta inválido");
+    err.status = 400;
+    throw err;
+  }
+
+    const offer = await prisma.offer.findUnique({ where: { id } });
+  if (!offer) {
+    const err = new Error("Oferta no encontrada");
+    err.status = 404;
+    throw err;
+  }
+
+    if (!offer.active) {
+    return offer;
+  }
+
+    const updated = await prisma.offer.update({
+    where: { id },
+    data: { active: false },
+  });
+
+    return updated;
+}
+
 module.exports = {
   createOfferService,
   listOffersService,
+  deactivateOfferService,
 };

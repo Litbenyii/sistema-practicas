@@ -7,6 +7,8 @@ import {
   approveApplication,
   rejectApplication,
   rejectPracticeRequest,
+  deactivateOffer,
+  getCoordOffers,
 } from "./api";
 
 export default function CoordinationHome({ name, onLogout, token }) {
@@ -16,6 +18,8 @@ export default function CoordinationHome({ name, onLogout, token }) {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [externalFilter, setExternalFilter] = useState("PEND_EVAL"); 
+  const [offers, setOffers] = useState([]);
+  const [loadingOffers, setLoadingOffers] = useState(true);
 
   // formulario crear oferta
   const [offerForm, setOfferForm] = useState({
@@ -36,11 +40,13 @@ export default function CoordinationHome({ name, onLogout, token }) {
       setMsg("");
       setLoading(true);
 
-      const [reqs, apps] = await Promise.all([
+      const [offersData, reqs, apps] = await Promise.all([
+        getCoordOffers(token),
         getCoordinatorPracticeRequests(token),
         getCoordinatorApplications(token),
       ]);
 
+      setOffers(offersData || []);
       setRequests(reqs || []);
       setApplications(apps || []);
     } catch (err) {
@@ -56,6 +62,27 @@ export default function CoordinationHome({ name, onLogout, token }) {
   useEffect(() => {
     loadData();
   }, [token]);
+
+  const handleCloseOffer = async (offerId) => {
+    const confirmar = window.confirm(
+      "¿Seguro que quieres cerrar esta oferta? Los estudiantes ya no podrán postular."
+    );
+    if (!confirmar) return;
+
+    try {
+      setError("");
+      setMsg("");
+      await deactivateOffer(token, offerId);
+      setMsg("Oferta cerrada correctamente.");
+
+      // recargar solo ofertas
+      const offersData = await getOffers(token);
+      setOffers(offersData || []);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "No se pudo cerrar la oferta.");
+    }
+  };
 
   // cambios de form
   const handleOfferChange = (e) => {
@@ -339,6 +366,45 @@ export default function CoordinationHome({ name, onLogout, token }) {
               </button>
             </div>
           </form>
+        </section>
+
+        {/* Ofertas internas publicadas */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 space-y-4 mt-4">
+          <h2 className="font-semibold text-sm">Ofertas internas publicadas</h2>
+
+          {loadingOffers ? (
+            <p className="text-slate-500 text-xs">Cargando ofertas...</p>
+          ) : offers.length === 0 ? (
+            <p className="text-slate-500 text-xs">No hay ofertas activas.</p>
+          ) : (
+            <div className="space-y-2">
+              {offers.map((o) => (
+                <div
+                  key={o.id}
+                  className="border border-slate-100 rounded-xl px-4 py-3 flex justify-between items-center"
+                >
+                  <div className="text-xs">
+                    <p className="font-medium">
+                      {o.title} — {o.company}
+                    </p>
+                    <p className="text-slate-500">{o.location}</p>
+                    {o.deadline && (
+                      <p className="text-slate-400 text-[11px] mt-1">
+                        Postulación hasta: {o.deadline.slice(0, 10)}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleCloseOffer(o.id)}
+                    className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs hover:bg-red-500"
+                  >
+                    Cerrar oferta
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Postulaciones a ofertas internas */}

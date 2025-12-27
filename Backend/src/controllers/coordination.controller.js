@@ -1,6 +1,7 @@
 const {
   createOfferService,
   listOffersService,
+  deactivateOfferService,
 } = require("../services/offer.service");
 
 const {
@@ -57,6 +58,27 @@ async function listOffersController(req, res) {
     console.error("Error listando ofertas:", err);
     return res.status(500).json({
       message: "Error interno del servidor al listar ofertas.",
+    });
+  }
+}
+
+async function deactivateOfferController(req, res) {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID de oferta inválido." });
+    }
+
+    const result = await deactivateOfferService(id);
+    return res.json(result);
+  } catch (err) {
+    console.error("Error desactivando oferta:", err);
+    const status = err.status || 500;
+
+    return res.status(status).json({
+      message:
+        err.message || "Error interno del servidor al desactivar la oferta.",
     });
   }
 }
@@ -193,4 +215,5 @@ module.exports = {
   approveApplicationController,
   rejectApplicationController,
   createStudentController,
+  deactivateOfferController,
 };

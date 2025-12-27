@@ -144,3 +144,16 @@ export async function createStudent(token, payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function deactivateOffer(token, id) {
+  return request(`/api/coord/offers/${id}/deactivate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getCoordOffers(token) {
+  return request("/api/coord/offers", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
