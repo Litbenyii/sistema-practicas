@@ -89,7 +89,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
       await deactivateOffer(token, offerId);
       setMsg("Oferta cerrada correctamente.");
 
-      const offersData = await getOffers(token);
+      const offersData = await getCoordOffers(token);
       setOffers(offersData || []);
     } catch (err) {
       console.error(err);
