@@ -45,28 +45,27 @@ async function deactivateOfferService(offerId) {
   const id = Number(offerId);
 
   if (!id) {
-    const err = new Error("ID de oferta inválido");
-    err.status = 400;
-    throw err;
+    throw new Error("ID de oferta inválido");
   }
 
-    const offer = await prisma.offer.findUnique({ where: { id } });
+  const offer = await prisma.offer.findUnique({ where: { id } });
+
   if (!offer) {
-    const err = new Error("Oferta no encontrada");
-    err.status = 404;
-    throw err;
+    throw new Error("Oferta no encontrada");
   }
 
-    if (!offer.active) {
+  if (!offer.active) {
     return offer;
   }
 
-    const updated = await prisma.offer.update({
+  const updated = await prisma.offer.update({
     where: { id },
-    data: { active: false },
+    data: {
+      active: false,
+    },
   });
 
-    return updated;
+  return updated;
 }
 
 module.exports = {
