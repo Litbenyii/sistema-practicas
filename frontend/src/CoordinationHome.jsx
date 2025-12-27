@@ -332,6 +332,7 @@ const handleCloseOffer = async (offerId) => {
               />
             </div>
 
+            {/* Fecha Inicio de practica*/}
             <div className="md:col-span-1">
               <input
                 type="date"
@@ -343,7 +344,7 @@ const handleCloseOffer = async (offerId) => {
               />
             </div>
 
-            {/* Fecha límite de postulación (única) */}
+            {/* Fecha limite de postulacion */}
             <div className="md:col-span-1">
               <input
                 type="date"

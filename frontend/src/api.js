@@ -103,7 +103,7 @@ export async function approvePracticeRequest(token, id) {
 }
 
 export async function createOffer(token, payload) {
-  const res = await fetch("http://localhost:4000/api/coordination/offers", {
+  const res = await fetch("http://localhost:4000/api/coord/offers", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
