@@ -40,7 +40,7 @@ async function deactivateOfferController(req, res) {
 
 async function createOfferController(req, res) {
   try {
-    const { title, company, location, hours, modality, details, deadline } = req.body;
+    const { title, company, location, hours, modality, details, deadline, startDate, } = req.body;
 
     if (!title || !company || !location || !details) {
       return res.status(400).json({
@@ -57,6 +57,7 @@ async function createOfferController(req, res) {
       modality,
       details,
       deadline,
+      startDate,
     });
 
     return res.status(201).json(offer);

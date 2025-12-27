@@ -18,8 +18,16 @@ async function getStudentByUserId(userId) {
 
 async function getOffers(req, res) {
   try {
+    const now = new Date();
+
     const offers = await prisma.offer.findMany({
-      where: { active: true },
+      where: {
+        active: true,
+        OR: [
+          { deadline: null },
+          { deadline: { gte: now } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
     });
 

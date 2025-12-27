@@ -1,7 +1,43 @@
 const { prisma } = require("../config/prisma");
 
-async function createOfferService({ title, company, location, hours, modality, details, deadline, startDate }) {
+// Helper para parsear fechas de forma segura
+function parseDateOrNull(value) {
+  if (!value) return null;
 
+  if (value instanceof Date) return value;
+
+  if (typeof value === "string") {
+    let iso = value.trim();
+
+    // Si viene como "dd/mm/yyyy" la convertimos
+    const match = iso.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) {
+      const [, dd, mm, yyyy] = match;
+      iso = `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
+    }
+
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) {
+      // Si Prisma recibe una fecha inválida va a reventar,
+      // así que mejor devolvemos null.
+      return null;
+    }
+    return d;
+  }
+
+  return null;
+}
+
+async function createOfferService({
+  title,
+  company,
+  location,
+  hours,
+  modality,
+  details,
+  deadline,
+  startDate,
+}) {
   const extraLines = [];
 
   if (hours) {
@@ -23,8 +59,8 @@ async function createOfferService({ title, company, location, hours, modality, d
       location,
       details: description,
       active: true,
-      deadline: deadline ? new Date(deadline) : null,
-      startDate: startDate ? new Date(startDate) : null,
+      deadline: parseDateOrNull(deadline),
+      startDate: parseDateOrNull(startDate),
     },
   });
 
@@ -32,45 +68,15 @@ async function createOfferService({ title, company, location, hours, modality, d
 }
 
 async function listOffersService() {
-  const now = new Date();
-
   const offers = await prisma.offer.findMany({
-    where: { active: true, OR: [{ deadline: null },{ deadline: { gte: now } }], }, // sin fecha limite o con fecha limite
+    where: { active: true },
     orderBy: { createdAt: "desc" },
   });
 
   return offers;
 }
 
-async function deactivateOfferService(offerId) {
-  const id = Number(offerId);
-
-  if (!id) {
-    throw new Error("ID de oferta inválido");
-  }
-
-  const offer = await prisma.offer.findUnique({ where: { id } });
-
-  if (!offer) {
-    throw new Error("Oferta no encontrada");
-  }
-
-  if (!offer.active) {
-    return offer;
-  }
-
-  const updated = await prisma.offer.update({
-    where: { id },
-    data: {
-      active: false,
-    },
-  });
-
-  return updated;
-}
-
 module.exports = {
   createOfferService,
   listOffersService,
-  deactivateOfferService,
 };

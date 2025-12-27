@@ -32,6 +32,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
     modality: "",
     details: "",
     deadline: "",
+    startDate: "",
   });
   const [savingOffer, setSavingOffer] = useState(false);
 
@@ -123,6 +124,7 @@ const handleCloseOffer = async (offerId) => {
         modality: offerForm.modality,
         details: offerForm.details,
         deadline: offerForm.deadline || null,
+        startDate: offerForm.startDate || null,
       });
 
       setMsg("Oferta creada correctamente.");
@@ -134,6 +136,7 @@ const handleCloseOffer = async (offerId) => {
         modality: "",
         details: "",
         deadline: "",
+        startDate: "",
       });
 
       // recargamos para que aparezca la nueva oferta en la lista
@@ -329,6 +332,17 @@ const handleCloseOffer = async (offerId) => {
               />
             </div>
 
+            <div className="md:col-span-1">
+              <input
+                type="date"
+                name="startDate"
+                value={offerForm.startDate}
+                onChange={handleOfferChange}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+                placeholder="Fecha de inicio de la práctica"
+              />
+            </div>
+
             {/* Fecha límite de postulación (única) */}
             <div className="md:col-span-1">
               <input
@@ -379,17 +393,24 @@ const handleCloseOffer = async (offerId) => {
                   key={o.id}
                   className="border border-slate-100 rounded-xl px-4 py-3 flex justify-between items-center"
                 >
-                  <div className="text-xs">
-                    <p className="font-medium">
-                      {o.title} — {o.company}
+                <div className="text-xs">
+                  <p className="font-medium">
+                    {o.title} — {o.company}
+                  </p>
+                  <p className="text-slate-500">{o.location}</p>
+
+                  {o.startDate && (
+                    <p className="text-slate-400 text-[11px]">
+                      Inicio estimado práctica: {o.startDate.slice(0, 10)}
                     </p>
-                    <p className="text-slate-500">{o.location}</p>
-                    {o.deadline && (
-                      <p className="text-slate-400 text-[11px] mt-1">
-                        Postulación hasta: {o.deadline.slice(0, 10)}
-                      </p>
-                    )}
-                  </div>
+                  )}
+
+                  {o.deadline && (
+                    <p className="text-slate-400 text-[11px] mt-1">
+                      Postulación hasta: {o.deadline.slice(0, 10)}
+                    </p>
+                  )}
+                </div>
 
                   <button
                     onClick={() => handleCloseOffer(o.id)}

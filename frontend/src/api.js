@@ -103,11 +103,30 @@ export async function approvePracticeRequest(token, id) {
 }
 
 export async function createOffer(token, payload) {
-  return request("/api/coord/offers", {
+  const res = await fetch("http://localhost:4000/api/coordination/offers", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      title: payload.title,
+      company: payload.company,
+      location: payload.location,
+      hours: payload.hours,
+      modality: payload.modality,
+      details: payload.details,
+      deadline: payload.deadline || null,
+      startDate: payload.startDate || null, // 🔹 nueva
+    }),
   });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || "Error al crear oferta");
+  }
+
+  return res.json();
 }
 
 export async function getCoordinatorApplications(token){
