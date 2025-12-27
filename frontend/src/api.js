@@ -13,16 +13,45 @@ async function request(path, options = {}) {
 
   if (!res.ok) {
     let msg = "Error en la solicitud";
+    let data = null;
+
     try {
-      const data = await res.json();
+      data = await res.json();
       msg = data.message || data.error || msg;
     } catch (e) {
 
     }
+
+    if (res.status === 401) {
+      try {
+        // limpiar datos basura
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("name");
+      } catch (e) {
+        console.warn("No se pudo limpiar el localStorage:", e);
+      }
+
+      // mensaje de expiracion
+      if (!data || (!data.message && !data.error)) {
+        msg = "Tu sesión ha expirado. Vuelve a iniciar sesión.";
+      }
+
+      // Redirigir el login
+      if (typeof window !== "undefined") {
+        if (window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
+      }
+
+      throw new Error(msg);
+    }
+
     throw new Error(msg);
   }
 
   if (res.status === 204) return null;
+
   return res.json();
 }
 
