@@ -188,36 +188,46 @@ export default function StudentHome({ name, onLogout, token }) {
             </p>
           ) : (
             <div className="space-y-3">
-              {availableOffers.map((o) => (
-                <div
-                  key={o.id}
-                  className="border border-slate-100 rounded-xl px-4 py-3 flex justify-between items-center"
-                >
-                  <div className="text-xs">
-                    <p className="font-medium">{o.title}</p>
-                    <p className="text-slate-500">
-                      {o.company} — {o.location}
-                    </p>
-                    {o.details && (
-                      <p className="text-slate-500 text-[11px] mt-1">
-                        {o.details}
-                      </p>
-                    )}
-                    {o.deadline && (
-                      <p className="text-slate-400 text-[11px] mt-1">
-                        Postula hasta: {o.deadline.slice(0, 10)}
-                      </p>
-                    )}
-                  </div>
+              {availableOffers.map((o) => {
+                const isExpired =
+                  o.deadline && new Date(o.deadline) < new Date();
 
-                  <button
-                    onClick={() => handleApply(o.id)}
-                    className="px-4 py-1 rounded-lg bg-slate-900 text-white text-xs hover:bg-slate-800"
+                return (
+                  <div
+                    key={o.id}
+                    className="border border-slate-100 rounded-xl px-4 py-3 flex justify-between items-center"
                   >
-                    Postular
-                  </button>
-                </div>
-              ))}
+                    <div className="text-xs">
+                      <p className="font-medium">{o.title}</p>
+                      <p className="text-slate-500">
+                        {o.company} — {o.location}
+                      </p>
+                      {o.details && (
+                        <p className="text-slate-500 text-[11px] mt-1">
+                          {o.details}
+                        </p>
+                      )}
+                      {o.deadline && (
+                        <p className="text-slate-400 text-[11px] mt-1">
+                          Postulación hasta: {o.deadline.slice(0, 10)}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => !isExpired && handleApply(o.id)}
+                      disabled={isExpired}
+                      className={`px-4 py-1 rounded-lg text-xs ${
+                        isExpired
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                          : "bg-slate-900 text-white hover:bg-slate-800"
+                      }`}
+                    >
+                      {isExpired ? "Plazo vencido" : "Postular"}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

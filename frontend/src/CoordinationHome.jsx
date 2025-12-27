@@ -14,12 +14,14 @@ import {
 export default function CoordinationHome({ name, onLogout, token }) {
   const [requests, setRequests] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [offers, setOffers] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [loadingOffers, setLoadingOffers] = useState(true);
+
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
-  const [externalFilter, setExternalFilter] = useState("PEND_EVAL"); 
-  const [offers, setOffers] = useState([]);
-  const [loadingOffers, setLoadingOffers] = useState(true);
+  const [externalFilter, setExternalFilter] = useState("PEND_EVAL");
 
   // formulario crear oferta
   const [offerForm, setOfferForm] = useState({
@@ -33,12 +35,23 @@ export default function CoordinationHome({ name, onLogout, token }) {
   });
   const [savingOffer, setSavingOffer] = useState(false);
 
-  // Cargar solicitudes de practicas externas y postulaciones internas
+  // (más adelante usaremos esto para registrar alumnos nuevos)
+  const [studentForm, setStudentForm] = useState({
+    name: "",
+    email: "",
+    rut: "",
+    career: "",
+    password: "",
+  });
+  const [creatingStudent, setCreatingStudent] = useState(false);
+
+  // Cargar ofertas internas + solicitudes externas + postulaciones internas
   const loadData = async () => {
     try {
       setError("");
       setMsg("");
       setLoading(true);
+      setLoadingOffers(true);
 
       const [offersData, reqs, apps] = await Promise.all([
         getCoordOffers(token),
@@ -56,6 +69,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
       );
     } finally {
       setLoading(false);
+      setLoadingOffers(false);
     }
   };
 
@@ -75,7 +89,6 @@ export default function CoordinationHome({ name, onLogout, token }) {
       await deactivateOffer(token, offerId);
       setMsg("Oferta cerrada correctamente.");
 
-      // recargar solo ofertas
       const offersData = await getOffers(token);
       setOffers(offersData || []);
     } catch (err) {
@@ -122,6 +135,9 @@ export default function CoordinationHome({ name, onLogout, token }) {
         details: "",
         deadline: "",
       });
+
+      // recargamos para que aparezca la nueva oferta en la lista
+      await loadData();
     } catch (err) {
       console.error(err);
       setError(err.message || "No se pudo crear la oferta.");
@@ -220,15 +236,6 @@ export default function CoordinationHome({ name, onLogout, token }) {
     return r.status === externalFilter;
   });
 
-  const [studentForm, setStudentForm] = useState({
-    name: "",
-    email: "",
-    rut: "",
-    career: "",
-    password: "",
-  });
-  const [creatingStudent, setCreatingStudent] = useState(false);
-
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -304,18 +311,6 @@ export default function CoordinationHome({ name, onLogout, token }) {
               />
             </div>
 
-            {/* Fecha límite de postulación */}
-            <div className="md:col-span-1">
-              <input
-                type="date"
-                name="deadline"
-                value={offerForm.deadline}
-                onChange={handleOfferChange}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                placeholder="Fecha límite de postulación"
-              />
-            </div>
-
             <div className="md:col-span-1 flex gap-2">
               <input
                 name="hours"
@@ -334,6 +329,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
               />
             </div>
 
+            {/* Fecha límite de postulación (única) */}
             <div className="md:col-span-1">
               <input
                 type="date"
@@ -428,9 +424,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
                     <p className="font-medium">
                       {a.Offer?.title} — {a.Offer?.company}
                     </p>
-                    <p className="text-slate-500">
-                      Alumno ID: {a.studentId}
-                    </p>
+                    <p className="text-slate-500">Alumno ID: {a.studentId}</p>
                     <p className="text-slate-500">
                       Estado:{" "}
                       <span className="font-semibold">
@@ -466,9 +460,11 @@ export default function CoordinationHome({ name, onLogout, token }) {
           )}
         </section>
 
-        {/* Solicitudes de prácticas externas */}
+        {/* Filtro + listado de prácticas externas */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="font-semibold text-sm">Solicitudes de prácticas externas</h2>
+          <h2 className="font-semibold text-sm">
+            Solicitudes de prácticas externas
+          </h2>
           <select
             value={externalFilter}
             onChange={(e) => setExternalFilter(e.target.value)}
@@ -480,6 +476,7 @@ export default function CoordinationHome({ name, onLogout, token }) {
             <option value="ALL">Todas</option>
           </select>
         </div>
+
         <section className="bg-white rounded-2xl shadow-sm p-6">
           <h2 className="font-semibold text-sm mb-4">
             Solicitudes de prácticas externas
@@ -509,9 +506,9 @@ export default function CoordinationHome({ name, onLogout, token }) {
                     </p>
                     <p className="text-slate-500">
                       Estado:{" "}
-                      <span className="font-semibold">
-                        {mapStatus(r.status)}
-                      </span>
+                        <span className="font-semibold">
+                          {mapStatus(r.status)}
+                        </span>
                     </p>
                   </div>
 

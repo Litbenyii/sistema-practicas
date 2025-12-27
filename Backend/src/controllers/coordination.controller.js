@@ -18,6 +18,24 @@ const {
 
 const { createStudentByCoordination } = require("../services/student.service");
 
+async function deactivateOfferController(req, res) {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID de oferta inválido." });
+    }
+
+    const result = await deactivateOfferService(id);
+    return res.json(result);
+  } catch (err) {
+    console.error("Error desactivando oferta:", err);
+    return res.status(500).json({
+      message: "Error interno del servidor al desactivar la oferta.",
+    });
+  }
+}
+
 //--------------------------------------
 
 async function createOfferController(req, res) {
