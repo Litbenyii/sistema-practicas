@@ -1,6 +1,6 @@
 const { prisma } = require("../config/prisma");
 
-async function createOfferService({ title, company, location, hours, modality, details, deadline }) {
+async function createOfferService({ title, company, location, hours, modality, details, deadline, startDate }) {
 
   const extraLines = [];
 
@@ -24,6 +24,7 @@ async function createOfferService({ title, company, location, hours, modality, d
       details: description,
       active: true,
       deadline: deadline ? new Date(deadline) : null,
+      startDate: startDate ? new Date(startDate) : null,
     },
   });
 

@@ -67,6 +67,7 @@ model Offer {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   deadline  DateTime?
+  startDate DateTime?
 
   Applications Application[]
 }
