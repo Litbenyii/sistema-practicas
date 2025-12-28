@@ -4,5 +4,4 @@ const prisma = new PrismaClient({
   log: ["error", "warn"],
 });
 
-module.exports = prisma;
-module.exports.prisma = prisma;
+module.exports = { prisma };
