@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const prisma = require("../config/prisma");
+const { prisma } = require("../config/prisma");
 const config = require("../config/env");
 
 const JWT_SECRET = config.jwtSecret || "dev_secret_change_me";

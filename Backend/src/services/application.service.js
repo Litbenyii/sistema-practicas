@@ -1,10 +1,24 @@
 const { prisma } = require("../config/prisma");
 const { Status, PracticeStatus } = require("@prisma/client");
 
+// Buscar el registro Student asociado a un User
 async function getStudentFromUser(userId) {
   return prisma.student.findFirst({ where: { userId } });
 }
 
+// ¿El estudiante ya tiene práctica abierta?
+async function studentHasOpenPractice(studentId) {
+  const practice = await prisma.practice.findFirst({
+    where: {
+      studentId,
+      status: PracticeStatus.ABIERTA,
+    },
+  });
+
+  return !!practice;
+}
+
+// Crear una nueva postulación a oferta interna
 async function createApplication(userId, offerId) {
   const parsedOfferId = Number(offerId);
 
@@ -77,7 +91,7 @@ async function myRequests(userId) {
   return { applications, practices };
 }
 
-// pendiente a evaluacion
+// Postulaciones internas para coordinación (solo pendientes)
 async function listApplicationsForCoordination() {
   const applications = await prisma.application.findMany({
     where: {
@@ -92,7 +106,7 @@ async function listApplicationsForCoordination() {
   return applications;
 }
 
-// Cambiar estado de una postulacion interna
+// Cambiar estado de una postulación interna
 async function updateApplicationStatus(applicationId, newStatus) {
   const id = Number(applicationId);
 
@@ -133,7 +147,6 @@ async function approveApplication(applicationId) {
     throw new Error("La postulación ya fue procesada");
   }
 
-  // verificar práctica activa
   const existingPractice = await prisma.practice.findFirst({
     where: {
       studentId: application.studentId,
@@ -147,7 +160,6 @@ async function approveApplication(applicationId) {
     );
   }
 
-  // aprobar postulación + crear práctica
   const [updatedApplication, practice] = await prisma.$transaction([
     prisma.application.update({
       where: { id },
@@ -169,17 +181,6 @@ async function approveApplication(applicationId) {
 
 async function rejectApplication(applicationId) {
   return updateApplicationStatus(applicationId, Status.REJECTED);
-}
-
-async function studentHasOpenPractice(studentId) {
-  const practice = await prisma.practice.findFirst({
-    where: {
-      studentId,
-      status: PracticeStatus.ABIERTA,
-    },
-  });
-
-  return !!practice;
 }
 
 module.exports = {

@@ -18,4 +18,3 @@ app.use("/api/coord", coordinationRoutes);
 app.listen(config.port, () => {
   console.log(`🚀 API Backend escuchando en http://localhost:${config.port}`);
 });
-

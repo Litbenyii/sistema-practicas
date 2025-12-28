@@ -1,4 +1,4 @@
-const prisma = require("../config/prisma");
+const { prisma } = require("../config/prisma");
 const {
   myRequests,
   createApplication,
@@ -23,10 +23,7 @@ async function getOffers(req, res) {
     const offers = await prisma.offer.findMany({
       where: {
         active: true,
-        OR: [
-          { deadline: null },
-          { deadline: { gte: now } },
-        ],
+        OR: [{ deadline: null }, { deadline: { gte: now } }],
       },
       orderBy: { createdAt: "desc" },
     });
@@ -68,11 +65,9 @@ async function applyToOffer(req, res) {
     return res.status(201).json(application);
   } catch (error) {
     console.error("Error en applyToOffer:", error);
-    return res
-      .status(400)
-      .json({
-        message: error.message || "Error al postular a la oferta",
-      });
+    return res.status(400).json({
+      message: error.message || "Error al postular a la oferta",
+    });
   }
 }
 
@@ -122,8 +117,7 @@ async function createPracticeRequest(req, res) {
       !endDate
     ) {
       return res.status(400).json({
-        message:
-          "Faltan datos obligatorios de la práctica externa",
+        message: "Faltan datos obligatorios de la práctica externa",
       });
     }
 

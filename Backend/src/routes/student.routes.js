@@ -8,21 +8,12 @@ router.use(verifyToken);
 router.use(requireStudent);
 
 router.get("/offers", studentController.getOffers);
-
 router.get("/applications", studentController.getApplications);
-
 router.get("/my/requests", studentController.getMyRequests);
 
 router.post("/applications/:offerId", studentController.applyToOffer);
 
-router.get(
-  "/practice-requests",
-  studentController.getPracticeRequests
-);
-
-router.post(
-  "/practice-requests",
-  studentController.createPracticeRequest
-);
+router.get("/practice-requests", studentController.getPracticeRequests);
+router.post("/practice-requests", studentController.createPracticeRequest);
 
 module.exports = router;

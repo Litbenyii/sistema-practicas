@@ -1,5 +1,5 @@
 const { prisma } = require("../config/prisma");
-const { Status, PracticeStatus, Role, DocumentType } = require("@prisma/client");
+const { Status, PracticeStatus, Role } = require("@prisma/client");
 const { getStudentFromUser } = require("./application.service");
 
 /* =====================================================
@@ -113,7 +113,7 @@ async function rejectPracticeRequest(practiceRequestId) {
 }
 
 /* =====================================================
-   PRÁCTICAS ABIERTAS
+   PRÁCTICAS ABIERTAS (opcional)
 ===================================================== */
 
 async function listOpenPractices() {
@@ -130,10 +130,9 @@ async function listOpenPractices() {
 }
 
 /* =====================================================
-   EVALUADORES
+   EVALUADORES (opcional)
 ===================================================== */
 
-// 🔹 Equivale a listEvaluators()
 async function listEvaluatorDirectory() {
   return prisma.user.findMany({
     where: {
@@ -153,4 +152,6 @@ module.exports = {
   listExternalPracticeRequests,
   approvePracticeRequest,
   rejectPracticeRequest,
+  listOpenPractices,
+  listEvaluatorDirectory,
 };

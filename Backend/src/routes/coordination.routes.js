@@ -14,7 +14,6 @@ const {
   listApplicationsController,
   approveApplicationController,
   rejectApplicationController,
-  closePracticeController,
 } = require("../controllers/coordination.controller");
 
 router.use(verifyToken);
@@ -22,16 +21,15 @@ router.use(requireCoordination);
 
 router.get("/offers", listOffersController);
 router.post("/offers", createOfferController);
-
 router.post("/offers/:id/deactivate", deactivateOfferController);
 
 router.get("/external-requests", listExternalRequestsController);
 router.post("/external-requests/:id/approve", approveExternalRequestController);
+router.post("/external-requests/:id/reject", rejectExternalRequestController);
 
 router.get("/applications", listApplicationsController);
 router.post("/applications/:id/approve", approveApplicationController);
 router.post("/applications/:id/reject", rejectApplicationController);
-router.post("/practices/:id/close",verifyToken, requireCoordination, closePracticeController);
 
 router.post("/students", createStudentController);
 

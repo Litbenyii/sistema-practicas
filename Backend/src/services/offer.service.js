@@ -1,6 +1,5 @@
 const { prisma } = require("../config/prisma");
 
-// Helper para parsear fechas de forma segura
 function parseDateOrNull(value) {
   if (!value) return null;
 
@@ -9,7 +8,6 @@ function parseDateOrNull(value) {
   if (typeof value === "string") {
     let iso = value.trim();
 
-    // Si viene como "dd/mm/yyyy" la convertimos
     const match = iso.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if (match) {
       const [, dd, mm, yyyy] = match;
@@ -18,8 +16,6 @@ function parseDateOrNull(value) {
 
     const d = new Date(iso);
     if (isNaN(d.getTime())) {
-      // Si Prisma recibe una fecha inválida va a reventar,
-      // así que mejor devolvemos null.
       return null;
     }
     return d;
@@ -58,6 +54,8 @@ async function createOfferService({
       company,
       location,
       details: description,
+      hours: hours || null,
+      modality: modality || null,
       active: true,
       deadline: parseDateOrNull(deadline),
       startDate: parseDateOrNull(startDate),
@@ -76,7 +74,36 @@ async function listOffersService() {
   return offers;
 }
 
+async function deactivateOfferService(offerId) {
+  const id = Number(offerId);
+  if (!id) {
+    const err = new Error("ID de oferta inválido");
+    err.status = 400;
+    throw err;
+  }
+
+  const offer = await prisma.offer.findUnique({ where: { id } });
+  if (!offer) {
+    const err = new Error("Oferta no encontrada");
+    err.status = 404;
+    throw err;
+  }
+
+  if (!offer.active) {
+
+    return offer;
+  }
+
+  const updated = await prisma.offer.update({
+    where: { id },
+    data: { active: false },
+  });
+
+  return updated;
+}
+
 module.exports = {
   createOfferService,
   listOffersService,
+  deactivateOfferService,
 };
