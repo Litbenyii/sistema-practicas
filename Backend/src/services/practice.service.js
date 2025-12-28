@@ -1,10 +1,13 @@
 const { prisma } = require("../config/prisma");
-const { Status, PracticeStatus } = require("@prisma/client");
+const { Status, PracticeStatus, Role, DocumentType } = require("@prisma/client");
 const { getStudentFromUser } = require("./application.service");
 
+/* =====================================================
+   CREAR SOLICITUD DE PRÁCTICA EXTERNA
+===================================================== */
+
 async function createExternalPractice(userId, payload) {
-  const { company, tutorName, tutorEmail, startDate, endDate, details } =
-    payload;
+  const { company, tutorName, tutorEmail, startDate, endDate, details } = payload;
 
   if (!company || !tutorName || !tutorEmail || !startDate || !endDate) {
     throw new Error("Faltan datos obligatorios");
@@ -27,24 +30,15 @@ async function createExternalPractice(userId, payload) {
   });
 }
 
-async function listOpenPractices() {
-  return prisma.practice.findMany({
-    where: { status: PracticeStatus.ABIERTA },
-    include: {
-      Student: { include: { User: true } },
-      Supervisor: true,
-      Evaluator: true,
-    },
-  });
-}
+/* =====================================================
+   SOLICITUDES DE PRÁCTICA EXTERNA
+===================================================== */
 
 async function listExternalPracticeRequests() {
   const requests = await prisma.practiceRequest.findMany({
     include: {
       Student: {
-        include: {
-          User: true,
-        },
+        include: { User: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -76,15 +70,11 @@ async function approvePracticeRequest(practiceRequestId) {
   });
 
   if (!request) {
-    const err = new Error("Solicitud de practica externa no encontrada");
-    err.status = 404;
-    throw err;
+    throw new Error("Solicitud de práctica externa no encontrada");
   }
 
   if (request.status !== Status.PEND_EVAL) {
-    const err = new Error("La solicitud ya fue procesada");
-    err.status = 400;
-    throw err;
+    throw new Error("La solicitud ya fue procesada");
   }
 
   const [practice] = await prisma.$transaction([
@@ -109,29 +99,140 @@ async function rejectPracticeRequest(practiceRequestId) {
   });
 
   if (!request) {
-    const err = new Error("Solicitud de practica externa no encontrada");
-    err.status = 404;
-    throw err;
+    throw new Error("Solicitud de práctica externa no encontrada");
   }
 
   if (request.status !== Status.PEND_EVAL) {
-    const err = new Error("La solicitud ya fue procesada");
-    err.status = 400;
-    throw err;
+    throw new Error("La solicitud ya fue procesada");
   }
 
-  const updated = await prisma.practiceRequest.update({
+  return prisma.practiceRequest.update({
     where: { id: practiceRequestId },
     data: { status: Status.REJECTED },
   });
-
-  return updated;
 }
+
+/* =====================================================
+   PRÁCTICAS ABIERTAS
+===================================================== */
+
+async function listOpenPractices() {
+  return prisma.practice.findMany({
+    where: { status: PracticeStatus.ABIERTA },
+    include: {
+      Student: { include: { User: true } },
+      Supervisor: true,
+      Evaluator: true,
+      Documents: true,
+      Evaluations: true,
+    },
+  });
+}
+
+/* =====================================================
+   EVALUADORES
+===================================================== */
+
+// 🔹 Equivale a listEvaluators()
+async function listEvaluatorDirectory() {
+  return prisma.user.findMany({
+    where: {
+      role: Role.EVALUATOR,
+      enabled: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+}
+
+// 🔹 Equivale a assignEvaluator()
+async function assignEvaluatorToPractice(practiceId, evaluatorId) {
+  return prisma.practice.update({
+    where: { id: practiceId },
+    data: { evaluatorId },
+  });
+}
+
+/* =====================================================
+   VALIDACIÓN DE CIERRE
+===================================================== */
+
+async function getPracticeClosureStatus(practiceId) {
+  const practice = await prisma.practice.findUnique({
+    where: { id: practiceId },
+    include: {
+      Documents: true,
+      Evaluations: true,
+    },
+  });
+
+  if (!practice) throw new Error("Práctica no encontrada.");
+
+  const hasInforme = practice.Documents.some(d => d.type === DocumentType.INFORME);
+  const hasBitacora = practice.Documents.some(d => d.type === DocumentType.BITACORA);
+
+  const evalSupervisor = practice.Evaluations.find(
+    e => e.role === Role.SUPERVISOR && e.score !== null
+  );
+
+  const evalEvaluator = practice.Evaluations.find(
+    e => e.role === Role.EVALUATOR && e.score !== null
+  );
+
+  return {
+    isReadyToClose: !!(hasInforme && hasBitacora && evalSupervisor && evalEvaluator),
+    checks: {
+      informe: hasInforme,
+      bitacora: hasBitacora,
+      evalSupervisor: !!evalSupervisor,
+      evalEvaluator: !!evalEvaluator,
+    },
+  };
+}
+
+/* =====================================================
+   CIERRE OFICIAL (equivale a closePractice)
+===================================================== */
+
+async function closePracticeOfficial(practiceId) {
+  const status = await getPracticeClosureStatus(practiceId);
+
+  if (!status.isReadyToClose) {
+    throw new Error("Faltan documentos o evaluaciones para cerrar la práctica.");
+  }
+
+  const practice = await prisma.practice.findUnique({
+    where: { id: practiceId },
+    include: { Evaluations: true },
+  });
+
+  const evalSup = practice.Evaluations.find(e => e.role === Role.SUPERVISOR);
+  const evalEv = practice.Evaluations.find(e => e.role === Role.EVALUATOR);
+
+  const finalGrade = (evalSup.score * 0.5) + (evalEv.score * 0.5);
+
+  return prisma.practice.update({
+    where: { id: practiceId },
+    data: {
+      status: PracticeStatus.CERRADA,
+      finalGrade,
+      updatedAt: new Date(),
+    },
+  });
+}
+
 
 module.exports = {
   createExternalPractice,
-  listOpenPractices,
   listExternalPracticeRequests,
   approvePracticeRequest,
   rejectPracticeRequest,
+  listOpenPractices,
+  listEvaluatorDirectory,
+  assignEvaluatorToPractice,
+  getPracticeClosureStatus,
+  closePracticeOfficial,
 };

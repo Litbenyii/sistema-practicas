@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/* ===================== ENUMS ===================== */
+
 enum Role {
   STUDENT
   COORDINATION
@@ -30,17 +32,27 @@ enum DocumentType {
   BITACORA
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  rut       String   @unique
-  name      String
-  password  String
-  role      Role
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
+enum PracticaVeranoEstado {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+  EN_PROCESO
+}
 
-  Student   Student?
+/* ===================== MODELS ===================== */
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  rut          String   @unique
+  name         String
+  password     String
+  role         Role
+  finalGrade   Float?
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  Student      Student?
 
   PracticesAsSupervisor Practice[] @relation("SupervisorPractices")
   PracticesAsEvaluator  Practice[] @relation("EvaluatorPractices")
@@ -48,10 +60,11 @@ model User {
 }
 
 model Student {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
+  id        Int    @id @default(autoincrement())
+  userId    Int    @unique
   career    String
-  User      User     @relation(fields: [userId], references: [id])
+
+  User      User   @relation(fields: [userId], references: [id])
 
   Applications     Application[]
   PracticeRequests PracticeRequest[]
@@ -64,6 +77,11 @@ model Offer {
   company   String
   location  String
   details   String
+
+  hours     Int?
+  modality  String?
+  startDate DateTime?
+
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   deadline  DateTime?
@@ -103,8 +121,11 @@ model Practice {
   studentId    Int
   supervisorId Int?
   evaluatorId  Int?
+
   status       PracticeStatus @default(ABIERTA)
   hours        Int?
+  finalGrade   Float?
+
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -121,29 +142,22 @@ model Document {
   practiceId Int
   type       DocumentType
   url        String
-  uploadedAt DateTime      @default(now())
+  uploadedAt DateTime     @default(now())
 
-  Practice   Practice      @relation(fields: [practiceId], references: [id])
+  Practice   Practice     @relation(fields: [practiceId], references: [id])
 }
 
 model Evaluation {
   id          Int      @id @default(autoincrement())
   practiceId  Int
   evaluatorId Int
-  role        Role     // SUPERVISOR o EVALUATOR
+  role        Role
   score       Float?
   comments    String?
   createdAt   DateTime @default(now())
 
   Practice    Practice @relation(fields: [practiceId], references: [id])
   Evaluator   User     @relation(fields: [evaluatorId], references: [id])
-}
-
-enum PracticaVeranoEstado {
-  PENDIENTE
-  APROBADO
-  RECHAZADO
-  EN_PROCESO
 }
 
 model PracticaVerano {
@@ -159,5 +173,3 @@ model PracticaVerano {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 }
-
-

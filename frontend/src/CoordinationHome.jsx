@@ -9,12 +9,21 @@ import {
   rejectPracticeRequest,
   deactivateOffer,
   getCoordOffers,
+  // --- Nuevas funciones para la evaluación ---
+  getCoordOpenPractices,
+  getEvaluators,
+  assignEvaluatorToPractice,
+  finalizePractice,
 } from "./api";
 
 export default function CoordinationHome({ name, onLogout, token }) {
   const [requests, setRequests] = useState([]);
   const [applications, setApplications] = useState([]);
   const [offers, setOffers] = useState([]);
+  
+  // --- Nuevos estados para la gestión de cierre ---
+  const [openPractices, setOpenPractices] = useState([]);
+  const [evaluators, setEvaluators] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingOffers, setLoadingOffers] = useState(true);
@@ -46,7 +55,21 @@ export default function CoordinationHome({ name, onLogout, token }) {
   });
   const [creatingStudent, setCreatingStudent] = useState(false);
 
-  // Cargar ofertas internas + solicitudes externas + postulaciones internas
+  // --- Lógica de validación de requisitos para el cierre ---
+  const checkRequirements = (practice) => {
+    const docs = practice.Documents || [];
+    const evals = practice.Evaluations || [];
+    
+    return {
+      informe: docs.some(d => d.type === "INFORME"),
+      bitacora: docs.some(d => d.type === "BITACORA"),
+      evalSupervisor: evals.some(e => e.role === "SUPERVISOR"),
+      evalEvaluador: evals.some(e => e.role === "EVALUATOR"),
+      hasEvaluator: practice.evaluatorId !== null
+    };
+  };
+
+  // Cargar ofertas internas + solicitudes externas + postulaciones internas + gestión de cierre
   const loadData = async () => {
     try {
       setError("");
@@ -54,15 +77,19 @@ export default function CoordinationHome({ name, onLogout, token }) {
       setLoading(true);
       setLoadingOffers(true);
 
-      const [offersData, reqs, apps] = await Promise.all([
+      const [offersData, reqs, apps, openPracs, evalsList] = await Promise.all([
         getCoordOffers(token),
         getCoordinatorPracticeRequests(token),
         getCoordinatorApplications(token),
+        getCoordOpenPractices(token), // Nueva: trae prácticas abiertas
+        getEvaluators(token),        // Nueva: trae directorio de profesores
       ]);
 
       setOffers(offersData || []);
       setRequests(reqs || []);
       setApplications(apps || []);
+      setOpenPractices(openPracs || []);
+      setEvaluators(evalsList || []);
     } catch (err) {
       console.error(err);
       setError(
@@ -218,6 +245,33 @@ const handleCloseOffer = async (offerId) => {
     } catch (err) {
       console.error(err);
       setError(err.message || "No se pudo rechazar la postulación.");
+    }
+  };
+
+  // --- Nuevos manejadores para la gestión de evaluación ---
+  const handleAssign = async (practiceId, evaluatorId) => {
+    try {
+      if (!evaluatorId) return;
+      await assignEvaluatorToPractice(token, practiceId, evaluatorId);
+      setMsg("Evaluador académico asignado correctamente.");
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Error al asignar evaluador.");
+    }
+  };
+
+  const handleFinalize = async (practiceId) => {
+    const confirmar = window.confirm(
+      "¿Desea cerrar oficialmente la práctica? Se validarán los documentos y se calculará la nota definitiva."
+    );
+    if (!confirmar) return;
+
+    try {
+      await finalizePractice(token, practiceId);
+      setMsg("La práctica ha sido cerrada y calificada oficialmente.");
+      await loadData();
+    } catch (err) {
+      setError(err.message || "No se pudo realizar el cierre.");
     }
   };
 
@@ -377,6 +431,64 @@ const handleCloseOffer = async (offerId) => {
               </button>
             </div>
           </form>
+        </section>
+
+        {/* Directorio de Gestión de Evaluación y Cierre */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+          <h2 className="font-semibold text-sm text-indigo-600">Cierre de Prácticas Profesionales (Gestión de Evaluación)</h2>
+          <div className="space-y-4">
+            {openPractices.length === 0 ? (
+              <p className="text-slate-500 text-xs">No hay prácticas abiertas para gestionar.</p>
+            ) : (
+              openPractices.map((p) => {
+                const status = checkRequirements(p);
+                const isReady = status.informe && status.bitacora && status.evalSupervisor && status.evalEvaluador;
+
+                return (
+                  <div key={p.id} className="border border-slate-100 p-4 rounded-xl flex justify-between items-center bg-slate-50/50">
+                    <div>
+                      <p className="font-bold text-sm">{p.Student?.User?.name || "Estudiante"}</p>
+                      <div className="flex gap-4 mt-2 text-[10px]">
+                        <span className={status.informe ? "text-emerald-600" : "text-slate-400 font-medium"}>
+                          {status.informe ? "✓ Informe Final" : "✗ Informe Final"}
+                        </span>
+                        <span className={status.bitacora ? "text-emerald-600" : "text-slate-400 font-medium"}>
+                          {status.bitacora ? "✓ Bitácora" : "✗ Bitácora"}
+                        </span>
+                        <span className={status.evalSupervisor ? "text-emerald-600" : "text-slate-400 font-medium"}>
+                          {status.evalSupervisor ? "✓ Eval. Empresa" : "✗ Eval. Empresa"}
+                        </span>
+                        <span className={status.evalEvaluador ? "text-emerald-600" : "text-slate-400 font-medium"}>
+                          {status.evalEvaluador ? "✓ Eval. Académica" : "✗ Eval. Académica"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <select
+                        className="text-[11px] border border-slate-200 rounded p-1 bg-white"
+                        value={p.evaluatorId || ""}
+                        onChange={(e) => handleAssign(p.id, e.target.value)}
+                      >
+                        <option value="">Asignar Evaluador...</option>
+                        {evaluators.map((ev) => (
+                          <option key={ev.id} value={ev.id}>{ev.name}</option>
+                        ))}
+                      </select>
+
+                      <button
+                        disabled={!isReady}
+                        onClick={() => handleFinalize(p.id)}
+                        className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs disabled:opacity-30 hover:bg-indigo-700 transition-colors"
+                      >
+                        Cerrar Práctica
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </section>
 
         {/* Ofertas internas publicadas */}
