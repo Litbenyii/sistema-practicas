@@ -25,7 +25,6 @@ router.post("/offers/:id/deactivate", deactivateOfferController);
 
 router.get("/external-requests", listExternalRequestsController);
 router.post("/external-requests/:id/approve", approveExternalRequestController);
-router.post("/practices/:id/close",authMiddleware("COORDINATION"),closePracticeController);
 
 router.get("/applications", listApplicationsController);
 router.post("/applications/:id/approve", approveApplicationController);
