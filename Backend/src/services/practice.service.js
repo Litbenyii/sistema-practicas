@@ -1,10 +1,13 @@
 const { prisma } = require("../config/prisma");
-const { Status, PracticeStatus } = require("@prisma/client");
+const { Status, PracticeStatus, Role, DocumentType } = require("@prisma/client");
 const { getStudentFromUser } = require("./application.service");
 
+/* =====================================================
+   CREAR SOLICITUD DE PRÁCTICA EXTERNA
+===================================================== */
+
 async function createExternalPractice(userId, payload) {
-  const { company, tutorName, tutorEmail, startDate, endDate, details } =
-    payload;
+  const { company, tutorName, tutorEmail, startDate, endDate, details } = payload;
 
   if (!company || !tutorName || !tutorEmail || !startDate || !endDate) {
     throw new Error("Faltan datos obligatorios");
@@ -27,24 +30,15 @@ async function createExternalPractice(userId, payload) {
   });
 }
 
-async function listOpenPractices() {
-  return prisma.practice.findMany({
-    where: { status: PracticeStatus.ABIERTA },
-    include: {
-      Student: { include: { User: true } },
-      Supervisor: true,
-      Evaluator: true,
-    },
-  });
-}
+/* =====================================================
+   SOLICITUDES DE PRÁCTICA EXTERNA
+===================================================== */
 
 async function listExternalPracticeRequests() {
   const requests = await prisma.practiceRequest.findMany({
     include: {
       Student: {
-        include: {
-          User: true,
-        },
+        include: { User: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -76,15 +70,11 @@ async function approvePracticeRequest(practiceRequestId) {
   });
 
   if (!request) {
-    const err = new Error("Solicitud de practica externa no encontrada");
-    err.status = 404;
-    throw err;
+    throw new Error("Solicitud de práctica externa no encontrada");
   }
 
   if (request.status !== Status.PEND_EVAL) {
-    const err = new Error("La solicitud ya fue procesada");
-    err.status = 400;
-    throw err;
+    throw new Error("La solicitud ya fue procesada");
   }
 
   const [practice] = await prisma.$transaction([
@@ -109,62 +99,58 @@ async function rejectPracticeRequest(practiceRequestId) {
   });
 
   if (!request) {
-    const err = new Error("Solicitud de practica externa no encontrada");
-    err.status = 404;
-    throw err;
+    throw new Error("Solicitud de práctica externa no encontrada");
   }
 
   if (request.status !== Status.PEND_EVAL) {
-    const err = new Error("La solicitud ya fue procesada");
-    err.status = 400;
-    throw err;
+    throw new Error("La solicitud ya fue procesada");
   }
 
-  const updated = await prisma.practiceRequest.update({
+  return prisma.practiceRequest.update({
     where: { id: practiceRequestId },
     data: { status: Status.REJECTED },
   });
-
-  return updated;
 }
 
-async function closePractice(practiceId) {
-  const id = Number(practiceId);
-  if (!id) {
-    const err = new Error("ID de práctica inválido");
-    err.status = 400;
-    throw err;
-  }
+/* =====================================================
+   PRÁCTICAS ABIERTAS
+===================================================== */
 
-  const practice = await prisma.practice.findUnique({
-    where: { id },
+async function listOpenPractices() {
+  return prisma.practice.findMany({
+    where: { status: PracticeStatus.ABIERTA },
+    include: {
+      Student: { include: { User: true } },
+      Supervisor: true,
+      Evaluator: true,
+      Documents: true,
+      Evaluations: true,
+    },
   });
+}
 
-  if (!practice) {
-    const err = new Error("Práctica no encontrada");
-    err.status = 404;
-    throw err;
-  }
+/* =====================================================
+   EVALUADORES
+===================================================== */
 
-  if (practice.status === PracticeStatus.CERRADA) {
-    const err = new Error("La práctica ya está cerrada");
-    err.status = 400;
-    throw err;
-  }
-
-  return prisma.practice.update({
-    where: { id },
-    data: {
-      status: PracticeStatus.CERRADA,
+// 🔹 Equivale a listEvaluators()
+async function listEvaluatorDirectory() {
+  return prisma.user.findMany({
+    where: {
+      role: Role.EVALUATOR,
+      enabled: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
     },
   });
 }
 
 module.exports = {
   createExternalPractice,
-  listOpenPractices,
   listExternalPracticeRequests,
   approvePracticeRequest,
   rejectPracticeRequest,
-  closePractice,
 };
