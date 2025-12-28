@@ -1,20 +1,20 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require("../middleware/auth.middleware");
-
 
 const { verifyToken, requireCoordination } = require("../middleware/auth");
 
 const {
   createOfferController,
   listOffersController,
+  deactivateOfferController,
+  createStudentController,
   listExternalRequestsController,
   approveExternalRequestController,
+  rejectExternalRequestController,
   listApplicationsController,
   approveApplicationController,
   rejectApplicationController,
-  createStudentController,
-  deactivateOfferController,
+  closePracticeController,
 } = require("../controllers/coordination.controller");
 
 router.use(verifyToken);
@@ -31,6 +31,7 @@ router.post("/external-requests/:id/approve", approveExternalRequestController);
 router.get("/applications", listApplicationsController);
 router.post("/applications/:id/approve", approveApplicationController);
 router.post("/applications/:id/reject", rejectApplicationController);
+router.post("/practices/:id/close",verifyToken, requireCoordination, closePracticeController);
 
 router.post("/students", createStudentController);
 
