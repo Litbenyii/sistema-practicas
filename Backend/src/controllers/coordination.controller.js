@@ -17,6 +17,7 @@ const {
 } = require("../services/application.service");
 
 const { createStudentByCoordination } = require("../services/student.service");
+const { closePractice } = require("../services/practice.service");
 
 async function deactivateOfferController(req, res) {
   try {
@@ -119,6 +120,19 @@ async function createStudentController(req, res) {
     console.error("Error creando estudiante desde coordinación:", err);
     return res.status(400).json({
       message: err.message || "Error al crear el estudiante.",
+    });
+  }
+}
+
+async function closePracticeController(req, res) {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const result = await closePractice(id);
+    return res.json(result);
+  } catch (err) {
+    console.error("Error cerrando práctica:", err);
+    return res.status(err.status || 500).json({
+      message: err.message || "Error al cerrar la práctica",
     });
   }
 }
@@ -235,4 +249,5 @@ module.exports = {
   rejectApplicationController,
   createStudentController,
   deactivateOfferController,
+  closePracticeController,
 };

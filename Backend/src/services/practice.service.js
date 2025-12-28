@@ -128,10 +128,43 @@ async function rejectPracticeRequest(practiceRequestId) {
   return updated;
 }
 
+async function closePractice(practiceId) {
+  const id = Number(practiceId);
+  if (!id) {
+    const err = new Error("ID de práctica inválido");
+    err.status = 400;
+    throw err;
+  }
+
+  const practice = await prisma.practice.findUnique({
+    where: { id },
+  });
+
+  if (!practice) {
+    const err = new Error("Práctica no encontrada");
+    err.status = 404;
+    throw err;
+  }
+
+  if (practice.status === PracticeStatus.CERRADA) {
+    const err = new Error("La práctica ya está cerrada");
+    err.status = 400;
+    throw err;
+  }
+
+  return prisma.practice.update({
+    where: { id },
+    data: {
+      status: PracticeStatus.CERRADA,
+    },
+  });
+}
+
 module.exports = {
   createExternalPractice,
   listOpenPractices,
   listExternalPracticeRequests,
   approvePracticeRequest,
   rejectPracticeRequest,
+  closePractice,
 };
