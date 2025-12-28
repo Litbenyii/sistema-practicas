@@ -1,5 +1,5 @@
 const { prisma } = require("../config/prisma");
-const { Status } = require("@prisma/client");
+const { Status, PracticeStatus } = require("@prisma/client");
 
 async function getStudentFromUser(userId) {
   return prisma.student.findFirst({ where: { userId } });
@@ -15,6 +15,13 @@ async function createApplication(userId, offerId) {
   const student = await getStudentFromUser(userId);
   if (!student) {
     throw new Error("Estudiante no registrado en el sistema");
+  }
+
+  const hasPractice = await studentHasOpenPractice(student.id);
+  if (hasPractice) {
+    throw new Error(
+      "Ya tienes una práctica activa o aprobada. No puedes postular a otra."
+    );
   }
 
   const offer = await prisma.offer.findUnique({
@@ -109,11 +116,70 @@ async function updateApplicationStatus(applicationId, newStatus) {
 }
 
 async function approveApplication(applicationId) {
-  return updateApplicationStatus(applicationId, Status.APPROVED);
+  const id = Number(applicationId);
+  if (!id) {
+    throw new Error("ID de postulación inválido");
+  }
+
+  const application = await prisma.application.findUnique({
+    where: { id },
+  });
+
+  if (!application) {
+    throw new Error("Postulación no encontrada");
+  }
+
+  if (application.status !== Status.PEND_EVAL) {
+    throw new Error("La postulación ya fue procesada");
+  }
+
+  // verificar práctica activa
+  const existingPractice = await prisma.practice.findFirst({
+    where: {
+      studentId: application.studentId,
+      status: PracticeStatus.ABIERTA,
+    },
+  });
+
+  if (existingPractice) {
+    throw new Error(
+      "El estudiante ya tiene una práctica activa. No se puede aprobar otra."
+    );
+  }
+
+  // aprobar postulación + crear práctica
+  const [updatedApplication, practice] = await prisma.$transaction([
+    prisma.application.update({
+      where: { id },
+      data: { status: Status.APPROVED },
+    }),
+    prisma.practice.create({
+      data: {
+        studentId: application.studentId,
+        status: PracticeStatus.ABIERTA,
+      },
+    }),
+  ]);
+
+  return {
+    application: updatedApplication,
+    practice,
+  };
 }
 
 async function rejectApplication(applicationId) {
   return updateApplicationStatus(applicationId, Status.REJECTED);
+}
+
+async function studentHasOpenPractice(studentId) {
+  const practice = await prisma.practice.findFirst({
+    where: {
+      studentId,
+      status: PracticeStatus.ABIERTA,
+    },
+  });
+
+  return !!practice;
 }
 
 module.exports = {
