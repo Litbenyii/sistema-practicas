@@ -1,27 +1,41 @@
-import { useState } from "react";
-import Login from "./login";
-import StudentHome from "./StudentHome";
-import CoordinationHome from "./CoordinationHome";
+import React, { useState } from "react";
+import Login from "./login.jsx";
+import StudentHome from "./StudentHome.jsx";
+import CoordinationHome from "./CoordinationHome.jsx";
 
 function App() {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem("user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
-  const handleLogin = (loggedUser) => {
+  const token = (() => {
+    try {
+      return localStorage.getItem("token");
+    } catch {
+      return null;
+    }
+  })();
+
+  const handleLogin = (loggedUser, tokenFromLogin) => {
     setUser(loggedUser);
+    if (tokenFromLogin) {
+      localStorage.setItem("token", tokenFromLogin);
+      localStorage.setItem("user", JSON.stringify(loggedUser));
+    }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch {}
     setUser(null);
   };
-
-  console.log("Usuario cargado en App:", user);
-
-  const token = localStorage.getItem("token");
 
   if (!user || !token) {
     return <Login onLogin={handleLogin} />;

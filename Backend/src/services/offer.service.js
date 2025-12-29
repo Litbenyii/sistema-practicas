@@ -1,45 +1,69 @@
 const { prisma } = require("../config/prisma");
 
-async function createOfferService({ title, company, location, hours, modality, details }) {
+/**
+ * Ofertas visibles para estudiantes (solo activas)
+ */
+async function listActiveOffers() {
+  return prisma.offer.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
 
-  const extraLines = [];
+/**
+ * Ofertas para coordinación (todas)
+ */
+async function listAllOffers() {
+  return prisma.offer.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+}
 
-  if (hours) {
-    extraLines.push(`Horas estimadas: ${hours}`);
-  }
-
-  if (modality) {
-    extraLines.push(`Modalidad: ${modality}`);
-  }
-
-  const description = [details, extraLines.join(" — ")]
-    .filter(Boolean)
-    .join("\n\n");
+/**
+ * Crear oferta de práctica (coordinación)
+ */
+async function createOffer(data) {
+  const {
+    title,
+    company,
+    location,
+    hours,
+    modality,
+    details,
+    deadline,
+    startDate,
+  } = data;
 
   const offer = await prisma.offer.create({
     data: {
       title,
       company,
       location,
-      details: description,
-      active: true,
+      hours,
+      modality,
+      details,
       deadline: deadline ? new Date(deadline) : null,
+      startDate: startDate ? new Date(startDate) : null,
+      isActive: true,
     },
   });
 
   return offer;
 }
 
-async function listOffersService() {
-  const offers = await prisma.offer.findMany({
-    where: { active: true },
-    orderBy: { createdAt: "desc" },
+/**
+ * Desactivar oferta (coordinación)
+ */
+async function deactivateOffer(id) {
+  return prisma.offer.update({
+    where: { id },
+    data: { isActive: false },
   });
-
-  return offers;
 }
 
 module.exports = {
-  createOfferService,
-  listOffersService,
+  listActiveOffers,
+  listAllOffers,
+  createOffer,
+  deactivateOffer,
 };

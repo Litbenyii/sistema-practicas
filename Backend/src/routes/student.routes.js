@@ -1,28 +1,23 @@
 const express = require("express");
+const {
+  getOffers,
+  getMyRequestsController,
+  createPracticeRequestController,
+  createApplicationController,
+} = require("../controllers/student.controller");
+const {
+  authMiddleware,
+  requireStudent,
+} = require("../middleware/auth");
+
 const router = express.Router();
 
-const studentController = require("../controllers/student.controller");
-const { verifyToken, requireStudent } = require("../middleware/auth");
+// Todas estas rutas requieren estudiante autenticado
+router.use(authMiddleware, requireStudent);
 
-router.use(verifyToken);
-router.use(requireStudent);
-
-router.get("/offers", studentController.getOffers);
-
-router.get("/applications", studentController.getApplications);
-
-router.get("/my/requests", studentController.getMyRequests);
-
-router.post("/applications/:offerId", studentController.applyToOffer);
-
-router.get(
-  "/practice-requests",
-  studentController.getPracticeRequests
-);
-
-router.post(
-  "/practice-requests",
-  studentController.createPracticeRequest
-);
+router.get("/offers", getOffers);
+router.get("/my/requests", getMyRequestsController);
+router.post("/practice-requests", createPracticeRequestController);
+router.post("/applications/:offerId", createApplicationController);
 
 module.exports = router;

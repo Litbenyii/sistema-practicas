@@ -1,196 +1,261 @@
 const {
-  createOfferService,
-  listOffersService,
-} = require("../services/offer.service");
-
-const {
-  listExternalPracticeRequests,
-  approvePracticeRequest,
-  rejectPracticeRequest,
+  getCoordinatorPracticeRequests,
+  updatePracticeRequestStatus,
+  getOpenPractices,
+  getEvaluators,
+  assignEvaluatorToPractice,
+  closePractice,
 } = require("../services/practice.service");
 
 const {
-  listApplicationsForCoordination,
-  approveApplication,
-  rejectApplication,
+  listAllOffers,
+  createOffer,
+  deactivateOffer,
+} = require("../services/offer.service");
+
+const {
+  getCoordinatorApplications,
+  updateApplicationStatus,
 } = require("../services/application.service");
 
-const { createStudentByCoordination } = require("../services/student.service");
+const {
+  createStudent,
+} = require("../services/student.service");
 
-//--------------------------------------
+/**
+ * Solicitudes externas (GET)
+ */
+async function listExternalRequests(req, res) {
+  try {
+    const requests = await getCoordinatorPracticeRequests();
+    return res.json(requests);
+  } catch (error) {
+    console.error("Error en listExternalRequests:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al obtener solicitudes externas" });
+  }
+}
+
+/**
+ * Aprobar solicitud externa
+ */
+async function approvePracticeRequestController(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+    const updated = await updatePracticeRequestStatus(id, "APPROVED");
+    return res.json(updated);
+  } catch (error) {
+    console.error("Error en approvePracticeRequest:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al aprobar solicitud de práctica" });
+  }
+}
+
+/**
+ * Rechazar solicitud externa
+ */
+async function rejectPracticeRequestController(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+    const updated = await updatePracticeRequestStatus(id, "REJECTED");
+    return res.json(updated);
+  } catch (error) {
+    console.error("Error en rejectPracticeRequest:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al rechazar solicitud de práctica" });
+  }
+}
+
+/**
+ * Ofertas
+ */
+async function listOffersController(req, res) {
+  try {
+    const offers = await listAllOffers();
+    return res.json(offers);
+  } catch (error) {
+    console.error("Error en listOffersController:", error);
+    return res.status(500).json({ message: "Error al obtener ofertas" });
+  }
+}
 
 async function createOfferController(req, res) {
   try {
-    const { title, company, location, hours, modality, details, deadline } = req.body;
-
-    if (!title || !company || !location || !details) {
-      return res.status(400).json({
-        message:
-          "Faltan campos obligatorios (título, empresa, ubicación, detalles).",
-      });
-    }
-
-    const offer = await createOfferService({
-      title,
-      company,
-      location,
-      hours,
-      modality,
-      details,
-      deadline,
-    });
-
+    const offer = await createOffer(req.body);
     return res.status(201).json(offer);
-  } catch (err) {
-    console.error("Error creando oferta desde Coordinación:", err);
-    return res.status(500).json({
-      message: "Error interno del servidor al crear la oferta.",
-    });
+  } catch (error) {
+    console.error("Error en createOfferController:", error);
+    return res.status(500).json({ message: "Error al crear oferta" });
   }
 }
 
-async function listOffersController(req, res) {
+async function deactivateOfferController(req, res) {
   try {
-    const offers = await listOffersService();
-    return res.json(offers);
-  } catch (err) {
-    console.error("Error listando ofertas:", err);
-    return res.status(500).json({
-      message: "Error interno del servidor al listar ofertas.",
-    });
-  }
-}
-
-async function createStudentController(req, res) {
-  try {
-    const { name, email, rut, career, password } = req.body;
-
-    const student = await createStudentByCoordination({
-      name,
-      email,
-      rut,
-      career,
-      password,
-    });
-
-    return res.status(201).json(student);
-  } catch (err) {
-    console.error("Error creando estudiante desde coordinación:", err);
-    return res.status(400).json({
-      message: err.message || "Error al crear el estudiante.",
-    });
-  }
-}
-
-//----------------------------------
-
-async function listExternalRequestsController(req, res) {
-  try {
-    const requests = await listExternalPracticeRequests();
-    return res.json(requests);
-  } catch (err) {
-    console.error("Error listando solicitudes externas:", err);
-    return res.status(500).json({
-      message:
-        "Error interno del servidor al listar solicitudes externas.",
-    });
-  }
-}
-
-async function approveExternalRequestController(req, res) {
-  try {
-    const id = parseInt(req.params.id, 10);
-
+    const id = Number(req.params.id);
     if (Number.isNaN(id)) {
-      return res.status(400).json({ message: "ID de solicitud inválido." });
+      return res.status(400).json({ message: "ID inválido" });
     }
-
-    const result = await approvePracticeRequest(id);
-    return res.json(result);
-  } catch (err) {
-    console.error("Error aprobando práctica externa:", err);
-    return res.status(500).json({
-      message: "Error interno del servidor al aprobar la práctica.",
-    });
+    const offer = await deactivateOffer(id);
+    return res.json(offer);
+  } catch (error) {
+    console.error("Error en deactivateOfferController:", error);
+    return res.status(500).json({ message: "Error al desactivar oferta" });
   }
 }
 
-async function rejectExternalRequestController(req, res) {
-  try {
-    const id = parseInt(req.params.id, 10);
-
-    if (Number.isNaN(id)) {
-      return res.status(400).json({ message: "ID de solicitud inválido." });
-    }
-
-    const result = await rejectPracticeRequest(id);
-    return res.json(result);
-  } catch (err) {
-    console.error("Error rechazando práctica externa:", err);
-    return res.status(500).json({
-      message: "Error interno del servidor al rechazar la práctica.",
-    });
-  }
-}
-
-//--------------------------
-
+/**
+ * Postulaciones
+ */
 async function listApplicationsController(req, res) {
   try {
-    const applications = await listApplicationsForCoordination();
-    return res.json(applications);
-  } catch (err) {
-    console.error("Error listando postulaciones internas:", err);
-    return res.status(500).json({
-      message: "Error interno del servidor al listar postulaciones.",
-    });
+    const apps = await getCoordinatorApplications();
+    return res.json(apps);
+  } catch (error) {
+    console.error("Error en listApplicationsController:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al obtener postulaciones" });
   }
 }
 
 async function approveApplicationController(req, res) {
   try {
-    const id = parseInt(req.params.id, 10);
-
+    const id = Number(req.params.id);
     if (Number.isNaN(id)) {
-      return res.status(400).json({ message: "ID de postulación inválido." });
+      return res.status(400).json({ message: "ID inválido" });
     }
-
-    const result = await approveApplication(id);
-    return res.json(result);
-  } catch (err) {
-    console.error("Error aprobando postulación:", err);
-    return res.status(500).json({
-      message: "Error interno del servidor al aprobar la postulación.",
-    });
+    const app = await updateApplicationStatus(id, "APPROVED");
+    return res.json(app);
+  } catch (error) {
+    console.error("Error en approveApplicationController:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al aprobar postulación" });
   }
 }
 
 async function rejectApplicationController(req, res) {
   try {
-    const id = parseInt(req.params.id, 10);
-
+    const id = Number(req.params.id);
     if (Number.isNaN(id)) {
-      return res.status(400).json({ message: "ID de postulación inválido." });
+      return res.status(400).json({ message: "ID inválido" });
+    }
+    const app = await updateApplicationStatus(id, "REJECTED");
+    return res.json(app);
+  } catch (error) {
+    console.error("Error en rejectApplicationController:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al rechazar postulación" });
+  }
+}
+
+/**
+ * Registrar estudiante
+ */
+async function createStudentController(req, res) {
+  try {
+    const { fullName, rut, email, career } = req.body;
+
+    if (!fullName || !rut || !email || !career) {
+      return res.status(400).json({ message: "Faltan datos del estudiante" });
     }
 
-    const result = await rejectApplication(id);
-    return res.json(result);
-  } catch (err) {
-    console.error("Error rechazando postulación:", err);
-    return res.status(500).json({
-      message: "Error interno del servidor al rechazar la postulación.",
-    });
+    const result = await createStudent({ fullName, rut, email, career });
+    return res.status(201).json(result);
+  } catch (error) {
+    console.error("Error en createStudentController:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al registrar estudiante" });
+  }
+}
+
+/**
+ * Evaluadores / Prácticas
+ */
+async function listEvaluatorsController(req, res) {
+  try {
+    const evaluators = await getEvaluators();
+    return res.json(evaluators);
+  } catch (error) {
+    console.error("Error en listEvaluatorsController:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al obtener evaluadores" });
+  }
+}
+
+async function listOpenPracticesController(req, res) {
+  try {
+    const practices = await getOpenPractices();
+    return res.json(practices);
+  } catch (error) {
+    console.error("Error en listOpenPracticesController:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al obtener prácticas abiertas" });
+  }
+}
+
+async function assignEvaluatorController(req, res) {
+  try {
+    const id = Number(req.params.id);
+    const { evaluatorId } = req.body;
+
+    if (Number.isNaN(id) || !evaluatorId) {
+      return res.status(400).json({ message: "Datos inválidos" });
+    }
+
+    const practice = await assignEvaluatorToPractice(id, Number(evaluatorId));
+    return res.json(practice);
+  } catch (error) {
+    console.error("Error en assignEvaluatorController:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al asignar evaluador" });
+  }
+}
+
+async function closePracticeController(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+
+    const practice = await closePractice(id);
+    return res.json(practice);
+  } catch (error) {
+    console.error("Error en closePracticeController:", error);
+    return res
+      .status(500)
+      .json({ message: "Error al cerrar práctica" });
   }
 }
 
 module.exports = {
-  createOfferController,
+  listExternalRequests,
+  approvePracticeRequestController,
+  rejectPracticeRequestController,
   listOffersController,
-  listExternalRequestsController,
-  approveExternalRequestController,
-  rejectExternalRequestController,
+  createOfferController,
+  deactivateOfferController,
   listApplicationsController,
   approveApplicationController,
   rejectApplicationController,
   createStudentController,
+  listEvaluatorsController,
+  listOpenPracticesController,
+  assignEvaluatorController,
+  closePracticeController,
 };

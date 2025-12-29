@@ -1,77 +1,134 @@
-const { PrismaClient, Role, Status } = require("@prisma/client");
+/* eslint-disable no-console */
+const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🧹 Limpiando tablas básicas...");
+  console.log("🌱 Iniciando seed de base de datos...");
 
-  await prisma.evaluation.deleteMany();
-  await prisma.document.deleteMany();
-  await prisma.practice.deleteMany();
-  await prisma.practiceRequest.deleteMany();
+  // Borrar todo en orden de dependencias
   await prisma.application.deleteMany();
+  await prisma.practiceRequest.deleteMany();
+  await prisma.practice.deleteMany();
+  await prisma.offer.deleteMany();
+  await prisma.evaluator.deleteMany();
   await prisma.student.deleteMany();
   await prisma.user.deleteMany();
-  await prisma.practicaVerano.deleteMany().catch(() => {}); 
 
-  console.log("✅ Tablas limpias.");
-  console.log("Enum Role desde Prisma:", Role);
-
-  const adminPassword = await bcrypt.hash("Admin123", 10);
+  // Usuarios
+  const coordPassword = await bcrypt.hash("Admin123", 10);
   const studentPassword = await bcrypt.hash("123456", 10);
 
-  const adminUser = await prisma.user.create({
+  const coordUser = await prisma.user.create({
     data: {
-      email: "admin@uni.cl",
-      rut: "11111111-1",
       name: "Coordinador Prácticas",
-      password: adminPassword,
-      role: Role.COORDINATION,
-      enabled: true,
+      email: "admin@uni.cl",
+      password: coordPassword,
+      role: "COORDINATION",
     },
   });
 
   const studentUser = await prisma.user.create({
     data: {
-      email: "alumno@uni.cl",
-      rut: "22222222-2",
       name: "Alumno Prueba",
+      email: "alumno@uni.cl",
       password: studentPassword,
-      role: Role.STUDENT,
-      enabled: true,
+      role: "STUDENT",
     },
   });
 
   const student = await prisma.student.create({
     data: {
       userId: studentUser.id,
-      career: "Ingeniería en Informática",
+      rut: "21.783.667-0",
+      career: "Ing. Informática",
     },
   });
 
-  const offer = await prisma.offer.create({
+  const evaluator = await prisma.evaluator.create({
+    data: {
+      name: "Docente Evaluador",
+      email: "docente@ubb.cl",
+    },
+  });
+
+  // Ofertas
+  const offer1 = await prisma.offer.create({
+    data: {
+      title: "Práctica Desarrollador Frontend",
+      company: "TechNova SpA",
+      location: "Concepción",
+      hours: 320,
+      modality: "Híbrida",
+      details:
+        "Apoyo en desarrollo web, mantención de equipos y soporte a usuarios internos.",
+      deadline: new Date("2025-12-29"),
+      startDate: null,
+    },
+  });
+
+  const offer2 = await prisma.offer.create({
     data: {
       title: "Práctica Desarrollador Web",
       company: "Empresa Demo",
       location: "Concepción",
-      details: "Práctica 320 horas, stack JS, modalidad híbrida",
-      active: true,
-      Applications: {
-        create: [
-          {
-            studentId: student.id,
-            status: Status.PEND_EVAL,
-          },
-        ],
-      },
+      hours: 320,
+      modality: "Híbrida",
+      details: "Stack JS, modalidad híbrida.",
+      deadline: new Date("2025-12-29"),
+      startDate: null,
     },
   });
 
-  console.log("✅ Seed completado.");
-  console.log("   Admin:   admin@uni.cl / Admin123");
-  console.log("   Alumno:  alumno@uni.cl / 123456");
-  console.log("   Oferta: ", offer.title);
+  // Postulaciones internas
+  await prisma.application.create({
+    data: {
+      studentId: student.id,
+      offerId: offer1.id,
+      status: "PEND_EVAL",
+    },
+  });
+
+  await prisma.application.create({
+    data: {
+      studentId: student.id,
+      offerId: offer2.id,
+      status: "PEND_EVAL",
+    },
+  });
+
+  // Solicitud de práctica externa
+  await prisma.practiceRequest.create({
+    data: {
+      studentId: student.id,
+      companyName: "Innovatech Solutions Ltda.",
+      tutorName: "Carlos Muñoz",
+      tutorEmail: "carlos.munoz@innovatech.cl",
+      startDate: new Date("2026-01-02"),
+      endDate: new Date("2026-04-30"),
+      details: "Desarrollo de soluciones internas para el área TI.",
+      status: "PEND_EVAL",
+    },
+  });
+
+  // Práctica abierta asociada al estudiante (para el módulo de evaluadores)
+  await prisma.practice.create({
+    data: {
+      studentId: student.id,
+      type: "EXTERNAL",
+      company: "Innovatech Solutions Ltda.",
+      startDate: new Date("2026-01-02"),
+      endDate: new Date("2026-04-30"),
+      hours: 320,
+      status: "OPEN",
+      evaluatorId: evaluator.id,
+    },
+  });
+
+  console.log("✅ Seed completado:");
+  console.log("- Usuario coordinación:", coordUser.email, "/ clave: Admin123");
+  console.log("- Usuario estudiante:", studentUser.email, "/ clave: 123456");
 }
 
 main()

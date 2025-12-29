@@ -1,8 +1,10 @@
 const { PrismaClient } = require("@prisma/client");
 
-const prisma = new PrismaClient({
-  log: ["error", "warn"],
-});
+let prisma;
 
-module.exports = prisma;
-module.exports.prisma = prisma;
+if (!global.__prisma) {
+  global.__prisma = new PrismaClient();
+}
+prisma = global.__prisma;
+
+module.exports = { prisma };

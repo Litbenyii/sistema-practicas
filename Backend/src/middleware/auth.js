@@ -1,81 +1,63 @@
-const jwt = require("jsonwebtoken");
-const prisma = require("../config/prisma");
-const config = require("../config/env");
+const { verifyToken } = require("../services/auth.service");
 
-const JWT_SECRET = config.jwtSecret || "dev_secret_change_me";
-
-async function verifyToken(req, res, next) {
+/**
+ * Middleware general de autenticación.
+ * Lee el header Authorization: Bearer <token> y adjunta req.user
+ */
+async function authMiddleware(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Token no proporcionado." });
+      return res.status(401).json({ message: "Token no proporcionado" });
     }
 
     const token = authHeader.split(" ")[1];
 
-    const payload = jwt.verify(token, JWT_SECRET);
-
-    if (!payload || !payload.id) {
-      return res
-        .status(401)
-        .json({ message: "Token inválido: falta información de usuario." });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id },
-    });
-
-    if (!user || !user.enabled) {
-      return res.status(401).json({ message: "Usuario no autorizado." });
-    }
+    const decoded = await verifyToken(token);
 
     req.user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+      id: decoded.userId,
+      role: decoded.role,
+      email: decoded.email,
+      name: decoded.name,
     };
 
     next();
-  } catch (err) {
-    console.error("Error en verifyToken:", err);
-    return res
-      .status(401)
-      .json({ message: "Token inválido o expirado." });
+  } catch (error) {
+    console.error("Error en authMiddleware:", error);
+    return res.status(401).json({ message: "Token inválido o expirado" });
   }
 }
 
-function requireStudent(req, res, next) {
-  if (!req.user) {
-    return res
-      .status(401)
-      .json({ message: "No autenticado (falta usuario en petición)." });
-  }
-  if (req.user.role !== "STUDENT") {
-    return res
-      .status(403)
-      .json({ message: "Rol no autorizado (solo STUDENT)." });
-  }
-  next();
-}
-
+/** Solo coordinación */
 function requireCoordination(req, res, next) {
   if (!req.user) {
-    return res
-      .status(401)
-      .json({ message: "No autenticado (falta usuario en petición)." });
+    return res.status(401).json({ message: "No autenticado" });
   }
   if (req.user.role !== "COORDINATION") {
     return res
       .status(403)
-      .json({ message: "Rol no autorizado (solo COORDINATION)." });
+      .json({ message: "Acceso restringido a coordinación" });
+  }
+  next();
+}
+
+/** Solo estudiante */
+function requireStudent(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ message: "No autenticado" });
+  }
+  if (req.user.role !== "STUDENT") {
+    return res
+      .status(403)
+      .json({ message: "Acceso restringido a estudiantes" });
   }
   next();
 }
 
 module.exports = {
-  verifyToken,
-  requireStudent,
+  authMiddleware,
   requireCoordination,
+  requireStudent,
 };

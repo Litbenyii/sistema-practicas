@@ -1,24 +1,19 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('STUDENT', 'COORDINATION', 'SUPERVISOR', 'EVALUATOR');
+CREATE TYPE "Role" AS ENUM ('STUDENT', 'COORDINATION');
 
 -- CreateEnum
-CREATE TYPE "Status" AS ENUM ('PEND_EVAL', 'APPROVED', 'REJECTED');
+CREATE TYPE "ApplicationStatus" AS ENUM ('PEND_EVAL', 'APPROVED', 'REJECTED');
 
 -- CreateEnum
-CREATE TYPE "PracticeStatus" AS ENUM ('ABIERTA', 'CERRADA');
-
--- CreateEnum
-CREATE TYPE "DocumentType" AS ENUM ('INFORME', 'BITACORA');
+CREATE TYPE "PracticeType" AS ENUM ('INTERNAL', 'EXTERNAL');
 
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
-    "email" TEXT NOT NULL,
-    "rut" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "Role" NOT NULL,
-    "enabled" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
@@ -27,10 +22,20 @@ CREATE TABLE "User" (
 -- CreateTable
 CREATE TABLE "Student" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "rut" TEXT NOT NULL,
     "career" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
 
     CONSTRAINT "Student_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Evaluator" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+
+    CONSTRAINT "Evaluator_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -39,8 +44,12 @@ CREATE TABLE "Offer" (
     "title" TEXT NOT NULL,
     "company" TEXT NOT NULL,
     "location" TEXT NOT NULL,
+    "hours" INTEGER NOT NULL,
+    "modality" TEXT NOT NULL,
     "details" TEXT NOT NULL,
-    "active" BOOLEAN NOT NULL DEFAULT true,
+    "deadline" TIMESTAMP(3),
+    "startDate" TIMESTAMP(3),
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Offer_pkey" PRIMARY KEY ("id")
@@ -51,8 +60,9 @@ CREATE TABLE "Application" (
     "id" SERIAL NOT NULL,
     "studentId" INTEGER NOT NULL,
     "offerId" INTEGER NOT NULL,
-    "status" "Status" NOT NULL DEFAULT 'PEND_EVAL',
+    "status" "ApplicationStatus" NOT NULL DEFAULT 'PEND_EVAL',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Application_pkey" PRIMARY KEY ("id")
 );
@@ -61,14 +71,15 @@ CREATE TABLE "Application" (
 CREATE TABLE "PracticeRequest" (
     "id" SERIAL NOT NULL,
     "studentId" INTEGER NOT NULL,
-    "company" TEXT NOT NULL,
+    "companyName" TEXT NOT NULL,
     "tutorName" TEXT NOT NULL,
     "tutorEmail" TEXT NOT NULL,
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3) NOT NULL,
     "details" TEXT,
-    "status" "Status" NOT NULL DEFAULT 'PEND_EVAL',
+    "status" "ApplicationStatus" NOT NULL DEFAULT 'PEND_EVAL',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "PracticeRequest_pkey" PRIMARY KEY ("id")
 );
@@ -77,48 +88,30 @@ CREATE TABLE "PracticeRequest" (
 CREATE TABLE "Practice" (
     "id" SERIAL NOT NULL,
     "studentId" INTEGER NOT NULL,
-    "supervisorId" INTEGER,
-    "evaluatorId" INTEGER,
-    "status" "PracticeStatus" NOT NULL DEFAULT 'ABIERTA',
+    "type" "PracticeType" NOT NULL,
+    "company" TEXT NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
     "hours" INTEGER,
+    "status" TEXT NOT NULL DEFAULT 'OPEN',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "evaluatorId" INTEGER,
 
     CONSTRAINT "Practice_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Document" (
-    "id" SERIAL NOT NULL,
-    "practiceId" INTEGER NOT NULL,
-    "type" "DocumentType" NOT NULL,
-    "url" TEXT NOT NULL,
-    "uploadedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "Document_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Evaluation" (
-    "id" SERIAL NOT NULL,
-    "practiceId" INTEGER NOT NULL,
-    "evaluatorId" INTEGER NOT NULL,
-    "role" "Role" NOT NULL,
-    "score" DOUBLE PRECISION,
-    "comments" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "Evaluation_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_rut_key" ON "User"("rut");
+CREATE UNIQUE INDEX "Student_rut_key" ON "Student"("rut");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Student_userId_key" ON "Student"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Evaluator_email_key" ON "Evaluator"("email");
 
 -- AddForeignKey
 ALTER TABLE "Student" ADD CONSTRAINT "Student_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -136,16 +129,4 @@ ALTER TABLE "PracticeRequest" ADD CONSTRAINT "PracticeRequest_studentId_fkey" FO
 ALTER TABLE "Practice" ADD CONSTRAINT "Practice_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Practice" ADD CONSTRAINT "Practice_supervisorId_fkey" FOREIGN KEY ("supervisorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Practice" ADD CONSTRAINT "Practice_evaluatorId_fkey" FOREIGN KEY ("evaluatorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Document" ADD CONSTRAINT "Document_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Evaluation" ADD CONSTRAINT "Evaluation_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Evaluation" ADD CONSTRAINT "Evaluation_evaluatorId_fkey" FOREIGN KEY ("evaluatorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Practice" ADD CONSTRAINT "Practice_evaluatorId_fkey" FOREIGN KEY ("evaluatorId") REFERENCES "Evaluator"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -10,153 +10,106 @@ datasource db {
 enum Role {
   STUDENT
   COORDINATION
-  SUPERVISOR
-  EVALUATOR
 }
 
-enum Status {
+enum ApplicationStatus {
   PEND_EVAL
   APPROVED
   REJECTED
 }
 
-enum PracticeStatus {
-  ABIERTA
-  CERRADA
-}
-
-enum DocumentType {
-  INFORME
-  BITACORA
+enum PracticeType {
+  INTERNAL
+  EXTERNAL
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  rut       String   @unique
+  id        Int       @id @default(autoincrement())
   name      String
+  email     String    @unique
   password  String
   role      Role
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
-  Student   Student?
-
-  PracticesAsSupervisor Practice[] @relation("SupervisorPractices")
-  PracticesAsEvaluator  Practice[] @relation("EvaluatorPractices")
-  Evaluations           Evaluation[]
+  student   Student?
 }
 
 model Student {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
+  id        Int       @id @default(autoincrement())
+  rut       String    @unique
   career    String
-  User      User     @relation(fields: [userId], references: [id])
+  userId    Int       @unique
 
-  Applications     Application[]
-  PracticeRequests PracticeRequest[]
-  Practices        Practice[]
+  user      User      @relation(fields: [userId], references: [id])
+  applications     Application[]
+  practiceRequests PracticeRequest[]
+  practices        Practice[]
+}
+
+model Evaluator {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  practices Practice[]
 }
 
 model Offer {
-  id        Int      @id @default(autoincrement())
-  title     String
-  company   String
-  location  String
-  details   String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  deadline  DateTime?
+  id          Int          @id @default(autoincrement())
+  title       String
+  company     String
+  location    String
+  hours       Int
+  modality    String
+  details     String
+  deadline    DateTime?
+  startDate   DateTime?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
 
-  Applications Application[]
+  applications Application[]
 }
 
 model Application {
-  id        Int      @id @default(autoincrement())
+  id        Int               @id @default(autoincrement())
   studentId Int
   offerId   Int
-  status    Status   @default(PEND_EVAL)
-  createdAt DateTime @default(now())
+  status    ApplicationStatus @default(PEND_EVAL)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
-  Student   Student  @relation(fields: [studentId], references: [id])
-  Offer     Offer    @relation(fields: [offerId], references: [id])
+  student   Student           @relation(fields: [studentId], references: [id])
+  offer     Offer             @relation(fields: [offerId], references: [id])
 }
 
 model PracticeRequest {
-  id         Int      @id @default(autoincrement())
-  studentId  Int
-  company    String
-  tutorName  String
-  tutorEmail String
-  startDate  DateTime
-  endDate    DateTime
-  details    String?
-  status     Status   @default(PEND_EVAL)
-  createdAt  DateTime @default(now())
+  id          Int               @id @default(autoincrement())
+  studentId   Int
+  companyName String
+  tutorName   String
+  tutorEmail  String
+  startDate   DateTime
+  endDate     DateTime
+  details     String?
+  status      ApplicationStatus @default(PEND_EVAL)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
-  Student    Student  @relation(fields: [studentId], references: [id])
+  student     Student           @relation(fields: [studentId], references: [id])
 }
 
 model Practice {
-  id           Int            @id @default(autoincrement())
-  studentId    Int
-  supervisorId Int?
-  evaluatorId  Int?
-  status       PracticeStatus @default(ABIERTA)
-  hours        Int?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id          Int          @id @default(autoincrement())
+  studentId   Int
+  type        PracticeType
+  company     String
+  startDate   DateTime
+  endDate     DateTime
+  hours       Int?
+  status      String       @default("OPEN")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
-  Student      Student        @relation(fields: [studentId], references: [id])
-  Supervisor   User?          @relation("SupervisorPractices", fields: [supervisorId], references: [id])
-  Evaluator    User?          @relation("EvaluatorPractices", fields: [evaluatorId], references: [id])
-
-  Documents    Document[]
-  Evaluations  Evaluation[]
+  student     Student      @relation(fields: [studentId], references: [id])
+  evaluatorId Int?
+  evaluator   Evaluator?   @relation(fields: [evaluatorId], references: [id])
 }
-
-model Document {
-  id         Int          @id @default(autoincrement())
-  practiceId Int
-  type       DocumentType
-  url        String
-  uploadedAt DateTime      @default(now())
-
-  Practice   Practice      @relation(fields: [practiceId], references: [id])
-}
-
-model Evaluation {
-  id          Int      @id @default(autoincrement())
-  practiceId  Int
-  evaluatorId Int
-  role        Role     // SUPERVISOR o EVALUATOR
-  score       Float?
-  comments    String?
-  createdAt   DateTime @default(now())
-
-  Practice    Practice @relation(fields: [practiceId], references: [id])
-  Evaluator   User     @relation(fields: [evaluatorId], references: [id])
-}
-
-enum PracticaVeranoEstado {
-  PENDIENTE
-  APROBADO
-  RECHAZADO
-  EN_PROCESO
-}
-
-model PracticaVerano {
-  id               Int                  @id @default(autoincrement())
-  rut              String
-  nombreEstudiante String
-  carrera          String
-  empresa          String
-  areaPractica     String
-  email            String?
-  telefono         String?
-  estado           PracticaVeranoEstado @default(PENDIENTE)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-}
-
-

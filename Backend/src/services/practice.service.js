@@ -1,137 +1,116 @@
 const { prisma } = require("../config/prisma");
-const { Status, PracticeStatus } = require("@prisma/client");
-const { getStudentFromUser } = require("./application.service");
 
-async function createExternalPractice(userId, payload) {
-  const { company, tutorName, tutorEmail, startDate, endDate, details } =
-    payload;
+/**
+ * Crear solicitud de práctica externa (estudiante)
+ */
+async function createPracticeRequest(studentId, payload) {
+  const {
+    companyName,
+    tutorName,
+    tutorEmail,
+    startDate,
+    endDate,
+    details,
+  } = payload;
 
-  if (!company || !tutorName || !tutorEmail || !startDate || !endDate) {
-    throw new Error("Faltan datos obligatorios");
-  }
-
-  const student = await getStudentFromUser(userId);
-  if (!student) throw new Error("Estudiante no registrado en el sistema");
-
-  return prisma.practiceRequest.create({
+  const req = await prisma.practiceRequest.create({
     data: {
-      studentId: student.id,
-      company,
+      studentId,
+      companyName,
       tutorName,
       tutorEmail,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       details: details || "",
-      status: Status.PEND_EVAL,
+      status: "PEND_EVAL",
     },
   });
+
+  return req;
 }
 
-async function listOpenPractices() {
-  return prisma.practice.findMany({
-    where: { status: PracticeStatus.ABIERTA },
+/**
+ * Listar solicitudes de práctica externa (coordinación)
+ */
+async function getCoordinatorPracticeRequests() {
+  return prisma.practiceRequest.findMany({
     include: {
-      Student: { include: { User: true } },
-      Supervisor: true,
-      Evaluator: true,
-    },
-  });
-}
-
-async function listExternalPracticeRequests() {
-  const requests = await prisma.practiceRequest.findMany({
-    include: {
-      Student: {
-        include: {
-          User: true,
-        },
+      student: {
+        include: { user: true },
       },
     },
     orderBy: { createdAt: "desc" },
   });
-
-  return requests.map((r) => ({
-    id: r.id,
-    company: r.company,
-    tutorName: r.tutorName,
-    tutorEmail: r.tutorEmail,
-    startDate: r.startDate,
-    endDate: r.endDate,
-    status: r.status,
-    student: r.Student
-      ? {
-          id: r.Student.id,
-          career: r.Student.career,
-          name: r.Student.User?.name,
-          email: r.Student.User?.email,
-          rut: r.Student.User?.rut,
-        }
-      : null,
-  }));
 }
 
-async function approvePracticeRequest(practiceRequestId) {
-  const request = await prisma.practiceRequest.findUnique({
-    where: { id: practiceRequestId },
+/**
+ * Actualizar estado de solicitud externa
+ */
+async function updatePracticeRequestStatus(id, status) {
+  return prisma.practiceRequest.update({
+    where: { id },
+    data: { status },
   });
+}
 
-  if (!request) {
-    const err = new Error("Solicitud de practica externa no encontrada");
-    err.status = 404;
-    throw err;
-  }
-
-  if (request.status !== Status.PEND_EVAL) {
-    const err = new Error("La solicitud ya fue procesada");
-    err.status = 400;
-    throw err;
-  }
-
-  const [practice] = await prisma.$transaction([
-    prisma.practice.create({
-      data: {
-        studentId: request.studentId,
-        status: PracticeStatus.ABIERTA,
+/**
+ * Lista prácticas abiertas (para asignar evaluador)
+ */
+async function getOpenPractices() {
+  return prisma.practice.findMany({
+    where: { status: "OPEN" },
+    include: {
+      student: {
+        include: { user: true },
       },
-    }),
-    prisma.practiceRequest.update({
-      where: { id: practiceRequestId },
-      data: { status: Status.APPROVED },
-    }),
-  ]);
-
-  return practice;
+      evaluator: true,
+    },
+  });
 }
 
-async function rejectPracticeRequest(practiceRequestId) {
-  const request = await prisma.practiceRequest.findUnique({
-    where: { id: practiceRequestId },
+/**
+ * Lista directorio de evaluadores
+ */
+async function getEvaluators() {
+  return prisma.evaluator.findMany({
+    orderBy: { name: "asc" },
   });
+}
 
-  if (!request) {
-    const err = new Error("Solicitud de practica externa no encontrada");
-    err.status = 404;
-    throw err;
-  }
-
-  if (request.status !== Status.PEND_EVAL) {
-    const err = new Error("La solicitud ya fue procesada");
-    err.status = 400;
-    throw err;
-  }
-
-  const updated = await prisma.practiceRequest.update({
-    where: { id: practiceRequestId },
-    data: { status: Status.REJECTED },
+/**
+ * Asigna evaluador a una práctica
+ */
+async function assignEvaluatorToPractice(practiceId, evaluatorId) {
+  return prisma.practice.update({
+    where: { id: practiceId },
+    data: {
+      evaluatorId,
+    },
+    include: {
+      student: {
+        include: { user: true },
+      },
+      evaluator: true,
+    },
   });
+}
 
-  return updated;
+/**
+ * Cierra una práctica (status = CLOSED)
+ */
+async function closePractice(practiceId) {
+  return prisma.practice.update({
+    where: { id: practiceId },
+    data: { status: "CLOSED" },
+  });
 }
 
 module.exports = {
-  createExternalPractice,
-  listOpenPractices,
-  listExternalPracticeRequests,
-  approvePracticeRequest,
-  rejectPracticeRequest,
+  createPracticeRequest,
+  getCoordinatorPracticeRequests,
+  updatePracticeRequestStatus,
+  getOpenPractices,
+  getEvaluators,
+  assignEvaluatorToPractice,
+  closePractice,
 };

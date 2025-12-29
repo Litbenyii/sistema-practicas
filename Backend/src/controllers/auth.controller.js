@@ -1,68 +1,26 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const prisma = require("../config/prisma");
-const config = require("../config/env");
+const { login } = require("../services/auth.service");
 
-const JWT_SECRET = config.jwtSecret || "dev_secret_change_me";
-
-async function login(req, res) {
+/**
+ * POST /api/auth/login
+ */
+async function loginController(req, res) {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
       return res
         .status(400)
-        .json({ message: "Email y contraseña son obligatorios" });
+        .json({ message: "Debe ingresar correo y contraseña" });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return res
-        .status(401)
-        .json({ message: "Credenciales inválidas (usuario no encontrado)" });
-    }
-
-    const passwordOK = await bcrypt.compare(password, user.password);
-    if (!passwordOK) {
-      return res
-        .status(401)
-        .json({ message: "Credenciales inválidas (contraseña incorrecta)" });
-    }
-
-    if (!user.enabled) {
-      return res
-        .status(401)
-        .json({ message: "Usuario deshabilitado, contacte a coordinación" });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-      },
-      JWT_SECRET,
-      { expiresIn: "8h" }
-    );
-
-    return res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-    });
-  } catch (err) {
-    console.error("Error en login:", err);
-    return res.status(500).json({ message: "Error en el servidor" });
+    const result = await login(email, password);
+    return res.json(result);
+  } catch (error) {
+    console.error("Error en loginController:", error);
+    return res.status(401).json({ message: error.message || "Login inválido" });
   }
 }
 
 module.exports = {
-  login,
+  loginController,
 };
